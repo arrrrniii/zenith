@@ -1,28 +1,44 @@
-// components/client/trips/TripDetail/BookingCard.js
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
-  Clock, Users, Ticket, Globe, Calendar, 
-  CalendarDays, CreditCard, Info, Check 
+  Clock, Users, Ticket, Globe, 
+  CalendarDays, CreditCard, Check 
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 const BookingCard = ({ 
-  price, 
-  details, 
-  onBook,
+  price = {}, 
+  details = {},
+  onBook = () => {},
   tourType = 'single_day',
-  tourSchedule = { startDates: [], dailySchedules: [] }
+  tourSchedule = { startDates: [], dailySchedules: [] },
+  allDatesPath = '' // Provide default empty string
 }) => {
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const formatCurrency = (amount, currency) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+  const formatCurrency = (amount, currency = 'USD') => {
+    if (!amount) return '-';
+    
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+      }).format(amount);
+    } catch (error) {
+      console.error('Currency formatting error:', error);
+      return `${currency} ${amount.toFixed(2)}`;
+    }
   };
 
   const renderPriceBreakdown = () => {
+    if (!price?.amount) {
+      return (
+        <div className="text-gray-600">
+          Price unavailable
+        </div>
+      );
+    }
+
     const formattedPrice = formatCurrency(price.amount, price.currency);
     const formattedOriginal = price.originalPrice ? 
       formatCurrency(price.originalPrice, price.currency) : null;
@@ -53,7 +69,7 @@ const BookingCard = ({
   };
 
   const renderDepositInfo = () => {
-    if (!price.deposit) return null;
+    if (!price?.deposit?.amount) return null;
     
     return (
       <div className="bg-blue-50 rounded-xl p-4 space-y-2">
@@ -73,7 +89,7 @@ const BookingCard = ({
   };
 
   const renderDateSelection = () => {
-    if (tourType === 'single_day' || !tourSchedule.startDates) return null;
+    if (tourType === 'single_day' || !tourSchedule?.startDates?.length) return null;
 
     return (
       <div className="space-y-3">
@@ -97,10 +113,66 @@ const BookingCard = ({
           ))}
         </div>
         {tourSchedule.startDates.length > 4 && (
-          <button className="text-sm text-blue-600 hover:text-blue-700">
-            View more dates
-          </button>
+          allDatesPath ? (
+            <Link 
+              href={allDatesPath}
+              className="inline-block text-sm text-blue-600 hover:text-blue-700"
+            >
+              View more dates
+            </Link>
+          ) : (
+            <button 
+              className="text-sm text-blue-600 hover:text-blue-700"
+              onClick={() => console.log('No dates path provided')}
+            >
+              View more dates
+            </button>
+          )
         )}
+      </div>
+    );
+  };
+
+  const renderKeyDetails = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          {tourType === 'multi_day' ? (
+            <CalendarDays className="w-5 h-5 text-gray-500" />
+          ) : (
+            <Clock className="w-5 h-5 text-gray-500" />
+          )}
+          <span>{details?.duration || 'Duration not specified'}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Users className="w-5 h-5 text-gray-500" />
+          <span>{details?.groupSize || 'Group size not specified'}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Ticket className="w-5 h-5 text-gray-500" />
+          <span>{details?.ticketType || 'Ticket type not specified'}</span>
+        </div>
+        {details?.languages?.live?.length > 0 && (
+          <div className="flex items-center gap-3">
+            <Globe className="w-5 h-5 text-gray-500" />
+            <span>{details.languages.live.join(', ')}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderFeatures = () => {
+    if (!details?.features?.length) return null;
+
+    return (
+      <div className="text-sm text-gray-600 space-y-2">
+        {details.features.map((feature, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-green-600" />
+            <span>{feature}</span>
+          </div>
+        ))}
       </div>
     );
   };
@@ -108,42 +180,10 @@ const BookingCard = ({
   return (
     <Card className="p-6 sticky top-6">
       <div className="space-y-6">
-        {/* Price Section */}
         {renderPriceBreakdown()}
-
-        {/* Date Selection for Multi-day Tours */}
         {renderDateSelection()}
-
-        {/* Deposit Information */}
         {renderDepositInfo()}
-
-        {/* Key Details */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            {tourType === 'multi_day' ? (
-              <CalendarDays className="w-5 h-5 text-gray-500" />
-            ) : (
-              <Clock className="w-5 h-5 text-gray-500" />
-            )}
-            <span>{details.duration}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-gray-500" />
-            <span>{details.groupSize}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Ticket className="w-5 h-5 text-gray-500" />
-            <span>{details.ticketType}</span>
-          </div>
-          {details.languages?.live?.length > 0 && (
-            <div className="flex items-center gap-3">
-              <Globe className="w-5 h-5 text-gray-500" />
-              <span>{details.languages.live.join(', ')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Booking Button */}
+        {renderKeyDetails()}
         <button
           onClick={() => onBook(selectedDate)}
           className={`w-full py-3 px-4 rounded-lg font-medium transition-colors
@@ -155,16 +195,7 @@ const BookingCard = ({
         >
           {tourType === 'multi_day' ? 'Reserve These Dates' : 'Reserve Now'}
         </button>
-
-        {/* Features */}
-        <div className="text-sm text-gray-600 space-y-2">
-          {details.features.map((feature, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-600" />
-              <span>{feature}</span>
-            </div>
-          ))}
-        </div>
+        {renderFeatures()}
       </div>
     </Card>
   );

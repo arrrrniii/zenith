@@ -1,12 +1,13 @@
+//components/dashboard/tour/TourForm.jsx
 import React, { useState } from 'react';
 import { useTourMutations } from './hooks/useTourMutations';
-import BasicInformation from './BasicInformation';
-import PricingDetails from './PricingDetails';
-import MediaSection from './MediaSection';
-import Activities from './Activities';
-import Schedule from './Schedule';
-import InclusionsExclusions from './InclusionsExclusions';
-import Accessibility from './Accessibility';
+import BasicInformation from './create/BasicInformation';
+import PricingDetails from './create/PricingDetails';
+import MediaSection from './create/MediaSection';
+import Activities from './create/Activities';
+import Schedule from './create/Schedule';
+import InclusionsExclusions from './create/InclusionsExclusions';
+import Accessibility from './create/Accessibility';
 import PropTypes from 'prop-types';
 import { Alert } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';

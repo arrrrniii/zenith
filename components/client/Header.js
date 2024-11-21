@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Menu, Globe, X, ChevronDown } from 'lucide-react';
 
 const Header = () => {
@@ -21,34 +22,32 @@ const Header = () => {
   ];
 
   return (
-    <header className=" top-0 left-0 right-0 bg-white mt-4  z-50">
+    <header className="top-0 left-0 right-0 bg-white mt-4 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="flex items-center gap-1">
-              <div className="relative w-52 h-52">
-                <Image
-                  src="/zenithtravel.png"
-                  alt="Zenith Travel"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </div>
+            <Link href="/" className="relative w-32 h-8">
+              <Image
+                src="/zenithtravel.png"
+                alt="Zenith Travel"
+                fill
+                className="object-contain"
+                priority
+              />
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 className="text-gray-600 hover:text-black font-medium"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -97,18 +96,15 @@ const Header = () => {
           <div className="p-4">
             {/* Mobile Header */}
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <div className="relative w-40 h-40">
-                  <Image
-                    src="/zenithtravel.png"
-                    alt="Zenith Travel"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-
-              </div>
+              <Link href="/" className="relative w-32 h-8">
+                <Image
+                  src="/zenithtravel.png"
+                  alt="Zenith Travel"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </Link>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 rounded-full hover:bg-gray-100"
@@ -120,13 +116,13 @@ const Header = () => {
             {/* Mobile Navigation */}
             <nav className="space-y-6">
               {navItems.map((item) => (
-                <a
+                <Link
                   key={item.label}
                   href={item.href}
                   className="block text-lg font-medium text-gray-900"
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
               
               {/* Mobile Language Selector */}

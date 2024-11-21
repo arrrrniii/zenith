@@ -39,6 +39,10 @@ const TripDetail = ({
   categoryName = '',
   location = '',
   tripType = '',
+  // Tour specific props
+  tourType = 'single_day',
+  tourSchedule,
+  allDatesPath = '',
   // New props for header/footer
   navigationLinks = [],
   footerLinks = [],
@@ -64,7 +68,35 @@ const TripDetail = ({
     return { title, subtitle };
   };
 
+  // Filter valid similar trips (must have all required properties)
+  const validSimilarTrips = similarTrips.filter(trip => 
+    trip && trip.id && trip.title && trip.image && trip.price
+  );
+
+  // Get content for similar trips sections
   const similarTripsContent = getSimilarTripsContent();
+
+  // Create sections only if they have valid items
+  const relatedSections = [
+    {
+      title: similarTripsContent.title,
+      subtitle: similarTripsContent.subtitle,
+      items: validSimilarTrips,
+      condition: validSimilarTrips.length > 0
+    },
+    {
+      title: "Popular Nearby",
+      subtitle: "Top-rated experiences in the area",
+      items: validSimilarTrips.filter(trip => trip.rating >= 4.5),
+      condition: validSimilarTrips.some(trip => trip.rating >= 4.5)
+    },
+    {
+      title: "Same Category",
+      subtitle: `More ${categoryName.toLowerCase()} experiences`,
+      items: validSimilarTrips.filter(trip => trip.category === categoryName),
+      condition: categoryName && validSimilarTrips.some(trip => trip.category === categoryName)
+    }
+  ].filter(section => section.condition);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -76,7 +108,7 @@ const TripDetail = ({
       />
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-16 left-0 right-0 bg-white z-50 px-4 py-3 border-b">
+      <div className="lg:hidden  top-16 left-0 right-0 bg-white z-50 px-4 py-3 border-b">
         <h1 className="text-xl font-bold truncate">{title}</h1>
       </div>
 
@@ -85,31 +117,35 @@ const TripDetail = ({
           {/* Desktop Header */}
           <div className="hidden lg:block mb-6">
             {/* Badges */}
-            <div className="flex gap-2 mb-4">
-              {badges.map((badge, index) => (
-                <StatusBadge key={index} type={badge.type} text={badge.text} />
-              ))}
-            </div>
+            {badges.length > 0 && (
+              <div className="flex gap-2 mb-4">
+                {badges.map((badge, index) => (
+                  <StatusBadge key={index} type={badge.type} text={badge.text} />
+                ))}
+              </div>
+            )}
 
             {/* Title Section */}
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{title}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-4 w-4 rounded-sm ${
-                            i < Math.floor(rating) ? 'bg-green-500' : 'bg-gray-300'
-                          }`}
-                        />
-                      ))}
+                  {(rating !== undefined && reviews !== undefined) && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-4 w-4 rounded-sm ${
+                              i < Math.floor(rating) ? 'bg-green-500' : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span>{reviews} reviews</span>
                     </div>
-                    <span>{reviews} reviews</span>
-                  </div>
-                  <span>By {providedBy}</span>
+                  )}
+                  {providedBy && <span>By {providedBy}</span>}
                 </div>
               </div>
 
@@ -149,7 +185,7 @@ const TripDetail = ({
               </div>
 
               {/* Highlights */}
-              <TripHighlights highlights={highlights} />
+              {highlights.length > 0 && <TripHighlights highlights={highlights} />}
 
               {/* Trip Information */}
               <div className="mt-8">
@@ -173,51 +209,15 @@ const TripDetail = ({
                 price={price}
                 details={details}
                 onBook={onBook}
+                tourType={tourType}
+                tourSchedule={tourSchedule}
+                allDatesPath={allDatesPath}
               />
             </div>
           </div>
         </div>
 
-        {/* Similar Trips */}
-
-        <div className="py-12 bg-gray-50">
-         <div className="max-w-7xl mx-auto px-4 lg:px-8">
-      <FourCardSection
-            title="Related Attractions"
-            subtitle="More places to explore nearby"
-            items={similarTrips}
-            cardType={CARD_TYPES.MEDIA_DETAIL}
-          />
-
-      </div>
-    </div>
-
-    <div className="py-12 bg-gray-50">
-         <div className="max-w-7xl mx-auto px-4 lg:px-8">
-      <FourCardSection
-            title="Related Attractions"
-            subtitle="More places to explore nearby"
-            items={similarTrips}
-            cardType={CARD_TYPES.MEDIA_DETAIL}
-          />
-
-      </div>
-    </div>
-      
-
-    <div className="py-12 bg-gray-50">
-         <div className="max-w-7xl mx-auto px-4 lg:px-8">
-      <FourCardSection
-            title="Related Attractions"
-            subtitle="More places to explore nearby"
-            items={similarTrips}
-            cardType={CARD_TYPES.MEDIA_DETAIL}
-          />
-
-      </div>
-    </div>
-      
-      
+    
       </main>
 
       {/* Footer */}
