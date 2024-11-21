@@ -21,6 +21,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/dashboard/tour/TourForm.jsx", "components/dashboard/tour/graphql/mutations.js", "components/dashboard/tour/hooks/useTourMutations.js"],
   "exclude": ["node_modules"]
 }

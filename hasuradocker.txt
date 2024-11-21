@@ -1,0 +1,35 @@
+version: '3.6'
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: hasura
+      POSTGRES_PASSWORD: qxUvVUhsJdExdknLmvmh
+      POSTGRES_DB: creativesphere
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hasura-network
+
+  hasura:
+    image: hasura/graphql-engine:v2.30.1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: always
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://hasura:qxUvVUhsJdExdknLmvmh@postgres:5432/creativesphere
+      HASURA_GRAPHQL_ADMIN_SECRET: qxUvVUhsJdExdknLmvmhqxUvVUhsJdExdknLmvmh
+      HASURA_GRAPHQL_CORS_DOMAIN: "https://creativesphere.co,https://www.creativesphere.co,http://localhost:3000"
+      HASURA_GRAPHQL_ENABLE_CORS: "true"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+    networks:
+      - hasura-network
+
+volumes:
+  postgres_data:
+
+networks:
+  hasura-network:
