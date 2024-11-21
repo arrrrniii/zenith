@@ -76,12 +76,12 @@ const navigationItems = [
     label: 'Blog', 
     icon: PenSquare,
     path: '/dashboard/blog',
-    subItems: [
-      { id: 'blog-posts', label: 'All Posts', icon: List, path: '/dashboard/blog' },
-      { id: 'blog-new', label: 'Write New Post', icon: Plus, path: '/dashboard/blog/new' },
-      { id: 'blog-categories', label: 'Categories', icon: FolderPlus, path: '/dashboard/blog/categories' },
-      { id: 'blog-media', label: 'Media Library', icon: Image, path: '/dashboard/blog/media' }
-    ]
+    // subItems: [
+    //   { id: 'blog-posts', label: 'All Posts', icon: List, path: '/dashboard/blog' },
+    //   { id: 'blog-new', label: 'Write New Post', icon: Plus, path: '/dashboard/blog/new' },
+    //   { id: 'blog-categories', label: 'Categories', icon: FolderPlus, path: '/dashboard/blog/categories' },
+    //   { id: 'blog-media', label: 'Media Library', icon: Image, path: '/dashboard/blog/media' }
+    // ]
   },
   { 
     id: 'bookings', 
