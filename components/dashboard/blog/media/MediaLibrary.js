@@ -1,4 +1,3 @@
-// components/dashboard/blog/media/MediaLibrary.js
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { 
@@ -6,13 +5,8 @@ import {
   Grid,
   List as ListIcon,
   Search,
-  Filter,
-  MoreVertical,
   Trash2,
   Edit,
-  Download,
-  Eye,
-  Image as ImageIcon,
   File
 } from 'lucide-react';
 
@@ -67,8 +61,6 @@ const MediaUploader = ({ onUpload }) => {
   };
 
   const handleFiles = (files) => {
-    // Handle file upload
-    console.log('Uploading files:', files);
     onUpload?.(files);
   };
 
@@ -99,7 +91,7 @@ const MediaUploader = ({ onUpload }) => {
   );
 };
 
-const MediaGrid = ({ items, onSelect, onDelete, onEdit }) => (
+const MediaGrid = ({ items, onDelete, onEdit }) => (
   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
     {items.map((item) => (
       <div
@@ -145,7 +137,7 @@ const MediaGrid = ({ items, onSelect, onDelete, onEdit }) => (
   </div>
 );
 
-const MediaList = ({ items, onSelect, onDelete, onEdit }) => (
+const MediaList = ({ items, onDelete, onEdit }) => (
   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
     <table className="min-w-full divide-y divide-gray-200">
       <thead className="bg-gray-50">
@@ -254,7 +246,6 @@ const MediaLibraryPage = () => {
       size: '1.2 MB',
       uploadedAt: '2024-03-14'
     },
-    // Add more items as needed
   ];
 
   const handleFilterChange = (newFilters) => {
@@ -262,17 +253,14 @@ const MediaLibraryPage = () => {
   };
 
   const handleUpload = (files) => {
-    // Handle file upload
     console.log('Uploading files:', files);
   };
 
   const handleEdit = (item) => {
-    // Handle edit
     console.log('Editing item:', item);
   };
 
   const handleDelete = (item) => {
-    // Handle delete
     console.log('Deleting item:', item);
   };
 
@@ -313,4 +301,3 @@ const MediaLibraryPage = () => {
 };
 
 export default MediaLibraryPage;
-

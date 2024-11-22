@@ -1,6 +1,6 @@
 // components/dashboard/bookings/BookingsFilter.js
 import React from 'react';
-import { Search, Filter, Calendar } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 
 const BookingsFilter = ({ onFilterChange }) => (
   <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white rounded-lg border border-gray-200">

@@ -1,8 +1,7 @@
-// components/admin/dashboard/service/blocks/components/editors/MapEditor.jsx
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ExternalLink } from 'lucide-react';
+// Removed unused ExternalLink import
 
 export const MapEditor = ({ content, onChange }) => {
   const mapContent = {
@@ -59,13 +58,11 @@ export const MapEditor = ({ content, onChange }) => {
         <ol className="list-decimal ml-4 space-y-1">
           <li>Open Google Maps</li>
           <li>Find your location</li>
-          <li>Click the "Share" button</li>
-          <li>Choose "Copy link"</li>
+          <li>Click the &quot;Share&quot; button</li>
+          <li>Choose &quot;Copy link&quot;</li>
           <li>Paste the link here (e.g., https://maps.app.goo.gl/...)</li>
         </ol>
       </div>
-
-   
     </div>
   );
 };

@@ -5,16 +5,12 @@ import {
   FileVideo,
   Quote,
   ListPlus,
-  Layout,
   Columns,
-  Sparkles,
   Link,
   Table,
   Code,
-  MapPin,
   Youtube,
   Instagram,
-  Twitter,
   MessageSquare
 } from 'lucide-react';
 

@@ -10,9 +10,7 @@ import {
   FileText,
   ArrowUp,
   ArrowDown,
-  Activity,
-  BarChart2,
-  PieChart
+
 } from 'lucide-react';
 import {
   LineChart,
@@ -24,9 +22,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart as RechartPieChart,
-  Pie,
-  Cell
+ 
 } from 'recharts';
 
 const StatCard = ({ title, value, change, icon: Icon, trend }) => (

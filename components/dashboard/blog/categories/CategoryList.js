@@ -1,11 +1,11 @@
 // components/dashboard/blog/categories/CategoryList.js
 import React from 'react';
 import { 
-  MoreVertical,
+
   Edit,
   Trash2,
   FolderPlus,
-  ChevronRight,
+
   FileText
 } from 'lucide-react';
 

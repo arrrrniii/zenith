@@ -574,7 +574,7 @@ const FormEditor = ({ content, onChange }) => {
                 })}
               />
               <Label htmlFor="show-reset-button">
-                Show "Send Another" button after submission
+                Show Send Another button after submission
               </Label>
             </div>
           </CardContent>

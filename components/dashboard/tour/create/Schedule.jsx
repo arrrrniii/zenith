@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, Plus, X, AlertCircle, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin,  X, AlertCircle, Info } from 'lucide-react';
 import FormSection from './FormSection';
-import { FormInput } from './FormFields';
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";

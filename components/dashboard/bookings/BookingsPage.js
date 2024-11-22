@@ -1,4 +1,3 @@
-// components/dashboard/bookings/BookingsPage.js
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import BookingsFilter from './BookingsFilter';
@@ -61,6 +60,40 @@ const BookingsPage = () => {
     router.push(`/dashboard/bookings/${booking.id}`);
   };
 
+  // Filter bookings based on current filters
+  const filteredBookings = bookings.filter(booking => {
+    // Search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      const searchableFields = [
+        booking.bookingNumber,
+        booking.tourName,
+        booking.customerName
+      ].map(field => field.toLowerCase());
+      
+      if (!searchableFields.some(field => field.includes(searchTerm))) {
+        return false;
+      }
+    }
+
+    // Status filter
+    if (filters.status && booking.status !== filters.status) {
+      return false;
+    }
+
+    // Date filter
+    if (filters.date && booking.date !== filters.date) {
+      return false;
+    }
+
+    // Tour type filter (assuming tour type is part of tour name)
+    if (filters.tourType && !booking.tourName.toLowerCase().includes(filters.tourType.toLowerCase())) {
+      return false;
+    }
+
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -78,7 +111,7 @@ const BookingsPage = () => {
 
       {/* Bookings List */}
       <BookingsList 
-        bookings={bookings}
+        bookings={filteredBookings}
         onViewDetails={handleViewDetails}
       />
 
@@ -96,8 +129,8 @@ const BookingsPage = () => {
           <div>
             <p className="text-sm text-gray-700">
               Showing <span className="font-medium">1</span> to{' '}
-              <span className="font-medium">10</span> of{' '}
-              <span className="font-medium">20</span> results
+              <span className="font-medium">{filteredBookings.length}</span> of{' '}
+              <span className="font-medium">{bookings.length}</span> results
             </p>
           </div>
           <div>

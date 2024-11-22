@@ -1,5 +1,4 @@
-// components/dashboard/bookings/BookingDetails.js
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/router';
 import { 
   ArrowLeft,
@@ -11,10 +10,8 @@ import {
   Phone,
   MapPin,
   MessageSquare,
-  Send,
   Download,
   Printer,
-  MoreVertical,
   Edit,
   Check
 } from 'lucide-react';
@@ -80,7 +77,6 @@ const Timeline = ({ events }) => (
 
 const BookingDetails = ({ booking }) => {
   const router = useRouter();
-  const [message, setMessage] = useState('');
 
   // Sample timeline events
   const timelineEvents = [
