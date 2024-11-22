@@ -340,3 +340,64 @@ export const GET_SIMILAR_TOURS = gql`
     }
   }
 `;
+
+
+
+
+export const GET_ATTRACTIONS = gql`
+  query GetAttractions($limit: Int, $where: attractions_bool_exp) {
+    attractions(
+      limit: $limit,
+      where: $where,
+      order_by: { created_at: desc }
+    ) {
+      id
+      name
+      description
+      address
+      directions
+      hours
+      website
+      phone
+      rating
+      review_count
+      monthly_visitors
+      price_range
+      status
+      created_at
+      attraction_images {
+        id
+        image_url
+        display_order
+      }
+      attraction_categories {
+        category {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
+
+export const GET_FEATURED_BLOGS = gql`
+  query GetFeaturedBlogs($limit: Int, $where: blogs_bool_exp) {
+    blogs(
+      limit: $limit,
+      where: $where,
+      order_by: { published_at: desc }
+    ) {
+      id
+      title
+      titletag
+      slug
+      description
+      keywords
+      thumbnail_url
+      category
+      status
+      published_at
+      created_at
+    }
+  }
+`;

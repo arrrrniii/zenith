@@ -1,7 +1,7 @@
 // pages/index.js
 import React from 'react';
 import { useQuery } from '@apollo/client';
-import { GET_FEATURED_TOURS, GET_UPCOMING_TOURS } from '../graphql/queries';
+import { GET_FEATURED_TOURS, GET_ATTRACTIONS, GET_FEATURED_BLOGS } from '../graphql/queries';
 import { CARD_TYPES } from '@/types';
 import FourCardSection from '@/components/client/FourCardSection';
 import FiveCardSection from '@/components/client/FiveCardSection';
@@ -10,7 +10,7 @@ import SearchBlock from '@/components/client/SearchBlock';
 import Header from '@/components/client/Header';
 import Footer from '@/components/client/Footer';
 
-// Helper functions outside the component
+// Helper functions
 const calculateDiscountedPrice = (price, discountPercentage) => {
   if (!price || !discountPercentage) return null;
   return price * (1 - discountPercentage / 100);
@@ -39,11 +39,44 @@ const transformTourData = (tours) => {
   }));
 };
 
-const YourPage = () => {
+const transformAttractionData = (attractions) => {
+  if (!attractions) return [];
+  
+  return attractions.map(attraction => ({
+    id: attraction.id,
+    image: attraction.attraction_images?.[0]?.image_url || '/placeholder.jpg',
+    title: attraction.name,
+    badge: attraction.status,
+    href: `/attractions/${attraction.id}`,
+    subtitle: attraction.description?.substring(0, 100) + '...',
+    rating: attraction.rating,
+    reviewCount: attraction.review_count,
+    description: attraction.description,
+    price: attraction.price_range,
+    categories: attraction.attraction_categories?.map(cat => cat.category.name) || [],
+  }));
+};
+
+const transformBlogData = (blogs) => {
+  if (!blogs) return [];
+  
+  return blogs.map(blog => ({
+    id: blog.id,
+    image: blog.thumbnail_url || '/blog-placeholder.jpg',
+    title: blog.title,
+    href: `/blog/${blog.slug}`,
+    subtitle: blog.description?.substring(0, 100) + '...',
+    badge: blog.category,
+    status: blog.status,
+    publishedAt: blog.published_at,
+  }));
+};
+
+const HomePage = () => {
   // Fetch featured tours
   const { data: toursData, loading: toursLoading, error: toursError } = useQuery(GET_FEATURED_TOURS, {
     variables: {
-      limit: 12,
+      limit: 4,
       where: {
         status: { _eq: "active" },
         tour_dates: { date: { _gte: "now()" } }
@@ -51,41 +84,80 @@ const YourPage = () => {
     }
   });
 
-  // Transform tours data for the card component
-  const transformedTourItems = React.useMemo(() => 
+  // Fetch attractions
+  const { 
+    data: attractionsData, 
+    loading: attractionsLoading, 
+    error: attractionsError 
+  } = useQuery(GET_ATTRACTIONS, {
+    variables: {
+      limit: 5,
+      where: { status: { _eq: "open" } }
+    }
+  });
+
+  // Fetch blogs
+  const { 
+    data: blogsData, 
+    loading: blogsLoading, 
+    error: blogsError 
+  } = useQuery(GET_FEATURED_BLOGS, {
+    variables: {
+      limit: 3,
+      where: { 
+        status: { _eq: "PUBLISHED" }
+      }
+    }
+  });
+
+  // Transform data
+  const tours = React.useMemo(() => 
     transformTourData(toursData?.tours),
     [toursData]
   );
 
+  const attractions = React.useMemo(() => 
+    transformAttractionData(attractionsData?.attractions),
+    [attractionsData]
+  );
+
+  const blogs = React.useMemo(() => 
+    transformBlogData(blogsData?.blogs),
+    [blogsData]
+  );
+
   // Loading state
-  if (toursLoading) {
+  if (toursLoading || attractionsLoading || blogsLoading) {
     return (
       <div className="space-y-12 mx-10 lg:mx-20 2xl:mx-[20vw]">
         <Header />
         <SearchBlock />
-        <div className="animate-pulse">
-          <div className="h-8 w-48 bg-gray-200 rounded mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded"></div>
-            ))}
+        {[1, 2, 3].map((section) => (
+          <div key={section} className="animate-pulse">
+            <div className="h-8 w-48 bg-gray-200 rounded mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 bg-gray-200 rounded"></div>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     );
   }
 
   // Error state
-  if (toursError) {
-    console.error('Error loading tours:', toursError);
+  const hasError = toursError || attractionsError || blogsError;
+  if (hasError) {
+    console.error('Error loading content:', { toursError, attractionsError, blogsError });
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto p-6 bg-red-50 rounded-lg">
           <h3 className="text-lg font-medium text-red-800 mb-2">
-            Error Loading Tours
+            Error Loading Content
           </h3>
           <p className="text-sm text-red-600">
-            We encountered an error while loading the tours. Please try again later.
+            We encountered an error while loading the content. Please try again later.
           </p>
         </div>
       </div>
@@ -98,32 +170,38 @@ const YourPage = () => {
       <SearchBlock/>
       
       {/* Popular Tours Section */}
-      <FourCardSection
-        title="Popular Tours"
-        subtitle="Discover our most booked experiences"
-        items={transformedTourItems}
-        cardType={CARD_TYPES.MEDIA_DETAIL}
-        loading={toursLoading}
-        error={toursError}
-      />
-
-      {/* Destination Spotlight Section */}
-      {transformedTourItems.length > 4 && (
-        <FiveCardSection
-          title="Destination Spotlight"
-          subtitle="Discover our most popular destinations"
-          items={transformedTourItems.slice(4, 9)}
+      {tours.length > 0 && (
+        <FourCardSection
+          title="Popular Tours"
+          subtitle="Discover our most booked experiences"
+          items={tours}
           cardType={CARD_TYPES.MEDIA_DETAIL}
+          loading={toursLoading}
+          error={toursError}
         />
       )}
 
-      {/* Featured Guides Section */}
-      {transformedTourItems.length > 9 && (
+      {/* Destination Spotlight Section */}
+      {attractions.length > 0 && (
+        <FiveCardSection
+          title="Destination Spotlight"
+          subtitle="Discover our most popular destinations"
+          items={attractions}
+          cardType={CARD_TYPES.MEDIA_DETAIL}
+          loading={attractionsLoading}
+          error={attractionsError}
+        />
+      )}
+
+      {/* Featured Blog Posts Section */}
+      {blogs.length > 0 && (
         <ThreeCardSection
-          title="Featured Guides"
-          subtitle="Expert-curated tours for unforgettable experiences"
-          items={transformedTourItems.slice(9, 12)}
+          title="Travel Stories"
+          subtitle="Expert guides and travel inspiration"
+          items={blogs}
           cardType={CARD_TYPES.COLLECTION_PREVIEW}
+          loading={blogsLoading}
+          error={blogsError}
         />
       )}
       
@@ -132,4 +210,4 @@ const YourPage = () => {
   );
 };
 
-export default YourPage;
+export default HomePage;

@@ -6,6 +6,8 @@ export const ATTRACTION_FIELDS = gql`
     id
     name
     description
+    country
+    city
     address
     directions
     hours
@@ -158,7 +160,9 @@ export const SEARCH_ATTRACTIONS = gql`
   query SearchAttractions(
     $search: String
     $category: String
-    $status: attraction_status
+    $status: String
+    $country: Int
+    $city: Int
     $limit: Int = 10
     $offset: Int = 0
   ) {
@@ -167,6 +171,8 @@ export const SEARCH_ATTRACTIONS = gql`
         _and: [
           { name: { _ilike: $search } }
           { status: { _eq: $status } }
+          { country: { _eq: $country } }
+          { city: { _eq: $city } }
           {
             attraction_categories: {
               category: { name: { _eq: $category } }
@@ -185,6 +191,8 @@ export const SEARCH_ATTRACTIONS = gql`
         _and: [
           { name: { _ilike: $search } }
           { status: { _eq: $status } }
+          { country: { _eq: $country } }
+          { city: { _eq: $city } }
           {
             attraction_categories: {
               category: { name: { _eq: $category } }
@@ -199,4 +207,16 @@ export const SEARCH_ATTRACTIONS = gql`
     }
   }
   ${ATTRACTION_FIELDS}
+`;
+
+// Query to get cities by country
+export const GET_CITIES = gql`
+  query GetCities($country: Int!) {
+    attractions(
+      where: { country: { _eq: $country } }
+      distinct_on: city
+    ) {
+      city
+    }
+  }
 `;

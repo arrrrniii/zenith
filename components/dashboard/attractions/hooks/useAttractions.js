@@ -4,6 +4,7 @@ import {
   GET_ATTRACTIONS,
   GET_ATTRACTION,
   GET_CATEGORIES,
+  GET_CITIES,
   CREATE_ATTRACTION,
   UPDATE_ATTRACTION,
   DELETE_ATTRACTION,
@@ -15,7 +16,7 @@ import {
 
 // Hook for fetching attractions with filters and pagination
 export const useAttractions = (filters = {}, pagination = {}) => {
-  const { search, category, status } = filters;
+  const { search, category, status, country, city } = filters;
   const { limit = 10, offset = 0, orderBy = [{ created_at: 'desc' }] } = pagination;
 
   // Construct the where clause based on filters
@@ -23,6 +24,8 @@ export const useAttractions = (filters = {}, pagination = {}) => {
     _and: [
       search ? { name: { _ilike: `%${search}%` } } : {},
       status ? { status: { _eq: status } } : {},
+      country ? { country: { _eq: parseInt(country) } } : {},
+      city ? { city: { _eq: parseInt(city) } } : {},
       category ? {
         attraction_categories: {
           category: {
@@ -66,12 +69,15 @@ export const useAttraction = (id) => {
   };
 };
 
-// Hook for fetching categories
-export const useCategories = () => {
-  const { data, loading, error } = useQuery(GET_CATEGORIES);
+// Hook for fetching cities by country
+export const useCities = (country) => {
+  const { data, loading, error } = useQuery(GET_CITIES, {
+    variables: { country: parseInt(country) },
+    skip: !country
+  });
 
   return {
-    categories: data?.categories || [],
+    cities: data?.attractions || [],
     loading,
     error
   };
@@ -82,14 +88,15 @@ export const useCreateAttraction = () => {
   const [createMutation, { loading }] = useMutation(CREATE_ATTRACTION);
 
   const createAttraction = async (attractionData) => {
-    const { categories, images, ...attractionDetails } = attractionData;
+    const { categories, images, country, city, ...attractionDetails } = attractionData;
 
     try {
-      // Create the attraction first
       const { data } = await createMutation({
         variables: {
           object: {
             ...attractionDetails,
+            country: parseInt(country),
+            city: parseInt(city),
             attraction_categories: {
               data: categories.map(categoryId => ({
                 category_id: categoryId
@@ -125,12 +132,19 @@ export const useUpdateAttraction = () => {
   const [addImagesMutation, { loading: imagesLoading }] = useMutation(ADD_ATTRACTION_IMAGES);
 
   const updateAttraction = async (id, attractionData) => {
-    const { categories, images, ...changes } = attractionData;
+    const { categories, images, country, city, ...changes } = attractionData;
 
     try {
-      // Update basic attraction details
+      // Update basic attraction details with parsed integers
       const { data } = await updateMutation({
-        variables: { id, changes }
+        variables: { 
+          id, 
+          changes: {
+            ...changes,
+            country: country ? parseInt(country) : undefined,
+            city: city ? parseInt(city) : undefined
+          }
+        }
       });
 
       // Update categories if provided
@@ -172,58 +186,14 @@ export const useUpdateAttraction = () => {
   };
 };
 
-// Hook for deleting an attraction
-export const useDeleteAttraction = () => {
-  const [deleteMutation, { loading }] = useMutation(DELETE_ATTRACTION, {
-    refetchQueries: [GET_ATTRACTIONS]
-  });
-
-  const deleteAttraction = async (id) => {
-    try {
-      const { data } = await deleteMutation({
-        variables: { id }
-      });
-      return data.delete_attractions_by_pk;
-    } catch (error) {
-      console.error('Error deleting attraction:', error);
-      throw error;
-    }
-  };
-
-  return {
-    deleteAttraction,
-    loading
-  };
-};
-
-// Hook for deleting an attraction image
-export const useDeleteAttractionImage = () => {
-  const [deleteMutation, { loading }] = useMutation(DELETE_ATTRACTION_IMAGE);
-
-  const deleteImage = async (imageId) => {
-    try {
-      const { data } = await deleteMutation({
-        variables: { id: imageId }
-      });
-      return data.delete_attraction_images_by_pk;
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      throw error;
-    }
-  };
-
-  return {
-    deleteImage,
-    loading
-  };
-};
-
 // Hook for searching attractions
 export const useSearchAttractions = () => {
   const [searchParams, setSearchParams] = useState({
     search: '',
     category: '',
     status: '',
+    country: null,
+    city: null,
     limit: 10,
     offset: 0
   });
@@ -233,6 +203,8 @@ export const useSearchAttractions = () => {
       search: searchParams.search ? `%${searchParams.search}%` : null,
       category: searchParams.category || null,
       status: searchParams.status || null,
+      country: searchParams.country ? parseInt(searchParams.country) : null,
+      city: searchParams.city ? parseInt(searchParams.city) : null,
       limit: searchParams.limit,
       offset: searchParams.offset
     },
@@ -248,4 +220,44 @@ export const useSearchAttractions = () => {
     setSearchParams,
     refetch
   };
+};
+
+// Export other hooks unchanged
+export const useCategories = () => {
+  const { data, loading, error } = useQuery(GET_CATEGORIES);
+  return { categories: data?.categories || [], loading, error };
+};
+
+export const useDeleteAttraction = () => {
+  const [deleteMutation, { loading }] = useMutation(DELETE_ATTRACTION, {
+    refetchQueries: [GET_ATTRACTIONS]
+  });
+
+  const deleteAttraction = async (id) => {
+    try {
+      const { data } = await deleteMutation({ variables: { id } });
+      return data.delete_attractions_by_pk;
+    } catch (error) {
+      console.error('Error deleting attraction:', error);
+      throw error;
+    }
+  };
+
+  return { deleteAttraction, loading };
+};
+
+export const useDeleteAttractionImage = () => {
+  const [deleteMutation, { loading }] = useMutation(DELETE_ATTRACTION_IMAGE);
+
+  const deleteImage = async (imageId) => {
+    try {
+      const { data } = await deleteMutation({ variables: { id: imageId } });
+      return data.delete_attraction_images_by_pk;
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      throw error;
+    }
+  };
+
+  return { deleteImage, loading };
 };
