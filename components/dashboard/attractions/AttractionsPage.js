@@ -4,6 +4,9 @@ import { useRouter } from 'next/router';
 import { Plus } from 'lucide-react';
 import AttractionsFilter from './AttractionsFilter';
 import AttractionsList from './AttractionsList';
+import { useAttractions, useDeleteAttraction } from './hooks/useAttractions';
+
+const ITEMS_PER_PAGE = 10;
 
 const AttractionsPage = () => {
   const router = useRouter();
@@ -12,35 +15,34 @@ const AttractionsPage = () => {
     category: '',
     status: ''
   });
-
-  // Sample data - Replace with actual data fetch
-  const attractions = [
-    {
-      id: 1,
-      name: "Cloud Gate (The Bean)",
-      rating: 4.8,
-      reviewCount: 12453,
-      location: "Millennium Park, Chicago",
-      hours: "6:00 AM - 11:00 PM",
-      lastUpdated: "2024-03-15",
-      website: "millenniumpark.org",
-      categories: ["Landmarks", "Art"],
-      status: "open"
-    },
-    // ... more attractions
-  ];
+  const [page, setPage] = useState(1);
+  
+  const { attractions, totalCount, loading, refetch } = useAttractions(filters, {
+    limit: ITEMS_PER_PAGE,
+    offset: (page - 1) * ITEMS_PER_PAGE
+  });
+  
+  const { deleteAttraction, loading: deleteLoading } = useDeleteAttraction();
 
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+    setPage(1); // Reset to first page when filters change
   };
 
   const handleEdit = (attraction) => {
     router.push(`/dashboard/attractions/edit/${attraction.id}`);
   };
 
-  const handleDelete = (attractionId) => {
-    // Handle deletion
-    console.log('Deleting attraction:', attractionId);
+  const handleDelete = async (attractionId) => {
+    if (window.confirm('Are you sure you want to delete this attraction?')) {
+      try {
+        await deleteAttraction(attractionId);
+        refetch();
+      } catch (error) {
+        console.error('Error deleting attraction:', error);
+        // Handle error (show toast notification, etc.)
+      }
+    }
   };
 
   const handleView = (attraction) => {
@@ -60,14 +62,48 @@ const AttractionsPage = () => {
         </button>
       </div>
 
-      <AttractionsFilter onFilterChange={handleFilterChange} />
-      
-      <AttractionsList 
-        attractions={attractions}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onView={handleView}
+      <AttractionsFilter 
+        onFilterChange={handleFilterChange}
+        loading={loading}
       />
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      ) : (
+        <>
+          <AttractionsList
+            attractions={attractions}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onView={handleView}
+          />
+
+          {/* Pagination */}
+          <div className="flex justify-between items-center mt-6">
+            <p className="text-sm text-gray-600">
+              Showing {((page - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(page * ITEMS_PER_PAGE, totalCount)} of {totalCount} attractions
+            </p>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border rounded-md disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                disabled={page * ITEMS_PER_PAGE >= totalCount}
+                className="px-4 py-2 border rounded-md disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
