@@ -2,16 +2,31 @@ import React, { useState } from 'react';
 import { 
   Clock, Users, MapPin, Globe, Check, X, 
   CalendarDays, Info, ShieldCheck, HelpCircle,
-  ChevronRight, ChevronDown, Sparkles 
+  ChevronDown, Sparkles, Star
 } from 'lucide-react';
 
 const TripInfo = ({
-  description,
+  description = '',
   highlights = [],
-  included = { included: [], notIncluded: [] },
-  whatToExpect = { schedule: [], groupSize: '' },
-  departure = { duration: '', point: '', directions: '', startTimes: [] },
-  cancellation = { policy: '', refundPolicy: '', noRefundPolicy: '' },
+  included = {
+    included: [],
+    notIncluded: []
+  },
+  whatToExpect = {
+    schedule: [],
+    groupSize: 'Not specified'
+  },
+  departure = {
+    duration: 'Not specified',
+    point: 'Not specified',
+    directions: '',
+    startTimes: []
+  },
+  cancellation = {
+    policy: '',
+    refundPolicy: '',
+    noRefundPolicy: ''
+  },
   faq = []
 }) => {
   const [expandedSection, setExpandedSection] = useState(null);
@@ -20,224 +35,233 @@ const TripInfo = ({
     setExpandedSection(expandedSection === section ? null : section);
   };
 
+  const InfoCard = ({ icon: Icon, label, value }) => (
+    <div className="flex-1 backdrop-blur-sm bg-white/80 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 bg-black/5 rounded-xl">
+          <Icon className="w-5 h-5 text-gray-700" />
+        </div>
+        <p className="text-sm text-gray-500 font-medium">{label}</p>
+      </div>
+      <p className="text-2xl font-semibold tracking-tight text-gray-900">{value}</p>
+    </div>
+  );
+
+  const ExpandableSection = ({ id, icon: Icon, title, children, condition = true }) => {
+    if (!condition) return null;
+    
+    return (
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm transition-all duration-300 hover:shadow-md">
+        <button
+          onClick={() => toggleSection(id)}
+          className="w-full flex items-center justify-between p-6 text-left"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-gray-50 rounded-xl">
+              <Icon className="w-5 h-5 text-gray-700" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          </div>
+          <ChevronDown 
+            className={`w-5 h-5 text-gray-400 transition-transform duration-500 ${
+              expandedSection === id ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        
+        {expandedSection === id && (
+          <div 
+            className="px-6 pb-6 animate-slideDown"
+            style={{
+              animation: 'slideDown 0.4s ease-out'
+            }}
+          >
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Ensure included arrays exist
+  const includedItems = included?.included || [];
+  const notIncludedItems = included?.notIncluded || [];
+  const scheduleItems = whatToExpect?.schedule || [];
+  const startTimes = departure?.startTimes || [];
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Hero Stats */}
-      <div className="flex gap-8 p-8 bg-black text-white rounded-3xl mb-8">
-        <div className="flex-1 space-y-1">
-          <p className="text-gray-400 text-sm">Duration</p>
-          <p className="text-2xl font-medium">{departure.duration}</p>
-        </div>
-        <div className="flex-1 space-y-1">
-          <p className="text-gray-400 text-sm">Group Size</p>
-          <p className="text-2xl font-medium">{whatToExpect.groupSize}</p>
-        </div>
-        <div className="flex-1 space-y-1">
-          <p className="text-gray-400 text-sm">Starting Point</p>
-          <p className="text-2xl font-medium truncate">{departure.point}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <InfoCard 
+          icon={Clock} 
+          label="Duration" 
+          value={departure?.duration || 'Not specified'}
+        />
+        <InfoCard 
+          icon={Users} 
+          label="Group Size" 
+          value={whatToExpect?.groupSize || 'Not specified'}
+        />
+        <InfoCard 
+          icon={MapPin} 
+          label="Starting Point" 
+          value={departure?.point || 'Not specified'}
+        />
       </div>
 
       {/* Key Features */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {highlights.slice(0, 4).map((highlight, index) => (
-          <div 
-            key={index}
-            className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl"
-          >
-            <Sparkles className="w-5 h-5 text-blue-500" />
-            <p className="text-sm">{highlight}</p>
-          </div>
-        ))}
-      </div>
+      {highlights.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {highlights.slice(0, 4).map((highlight, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-4 p-5 bg-white/80 backdrop-blur-sm rounded-2xl transition-all duration-300 hover:shadow-md"
+            >
+              <div className="p-2 bg-blue-50 rounded-xl">
+                <Star className="w-5 h-5 text-blue-500" />
+              </div>
+              <p className="text-gray-700 font-medium">{highlight}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Expandable Sections */}
       <div className="space-y-4">
-        {/* Schedule Section */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('schedule')}
-            className="w-full flex items-center justify-between p-6 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <CalendarDays className="w-6 h-6" />
-              <h3 className="text-lg font-medium">Tour Schedule</h3>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 transition-transform ${
-                expandedSection === 'schedule' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          
-          {expandedSection === 'schedule' && (
-            <div className="px-6 pb-6">
-              <div className="space-y-6">
-                {whatToExpect.schedule.map((item, index) => (
-                  <div key={index} className="flex gap-4 relative">
-                    <div className="w-12 shrink-0 pt-1">
-                      <span className="text-sm font-medium text-blue-500">{item.time}</span>
+        <ExpandableSection 
+          id="schedule" 
+          icon={CalendarDays} 
+          title="Tour Schedule"
+          condition={scheduleItems.length > 0}
+        >
+          <div className="space-y-6">
+            {scheduleItems.map((item, index) => (
+              <div key={index} className="flex gap-6 relative">
+                <div className="w-16 shrink-0 pt-1">
+                  <span className="text-sm font-semibold text-blue-600">{item.time}</span>
+                </div>
+                <div className="flex-1 pb-6 border-l-2 border-blue-100 pl-6">
+                  <h4 className="font-medium text-gray-900">{item.activity}</h4>
+                  <p className="mt-2 text-gray-600 leading-relaxed">{item.details}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+
+        <ExpandableSection 
+          id="included" 
+          icon={Check} 
+          title="What's Included"
+          condition={includedItems.length > 0 || notIncludedItems.length > 0}
+        >
+          <div className="grid md:grid-cols-2 gap-8">
+            {includedItems.length > 0 && (
+              <div className="space-y-4">
+                {includedItems.map((item, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-green-50/50 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="flex-1 pb-6 border-l-2 border-gray-100 pl-6">
-                      <h4 className="font-medium">{item.activity}</h4>
-                      <p className="mt-2 text-sm text-gray-600">{item.details}</p>
-                    </div>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* What's Included Section */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('included')}
-            className="w-full flex items-center justify-between p-6 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <Check className="w-6 h-6" />
-              <h3 className="text-lg font-medium">What's Included</h3>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 transition-transform ${
-                expandedSection === 'included' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          
-          {expandedSection === 'included' && (
-            <div className="px-6 pb-6">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  {included.included.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-green-50 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-green-600" />
-                      </div>
-                      <span className="text-sm">{item}</span>
+            )}
+            {notIncludedItems.length > 0 && (
+              <div className="space-y-4">
+                {notIncludedItems.map((item, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-red-50/50 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                      <X className="w-4 h-4 text-red-600" />
                     </div>
-                  ))}
-                </div>
-                <div className="space-y-4">
-                  {included.notIncluded.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center">
-                        <X className="w-4 h-4 text-red-600" />
-                      </div>
-                      <span className="text-sm">{item}</span>
-                    </div>
-                  ))}
-                </div>
+                    <span className="text-gray-700">{item}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ExpandableSection>
 
-        {/* Meeting Point Section */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('meeting')}
-            className="w-full flex items-center justify-between p-6 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <MapPin className="w-6 h-6" />
-              <h3 className="text-lg font-medium">Meeting Point</h3>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 transition-transform ${
-                expandedSection === 'meeting' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          
-          {expandedSection === 'meeting' && (
-            <div className="px-6 pb-6 space-y-6">
-              <div className="space-y-2">
-                <h4 className="font-medium">{departure.point}</h4>
-                <p className="text-sm text-gray-600">{departure.directions}</p>
+        <ExpandableSection 
+          id="meeting" 
+          icon={MapPin} 
+          title="Meeting Point"
+          condition={!!(departure?.point || departure?.directions || startTimes.length)}
+        >
+          <div className="space-y-6">
+            {(departure?.point || departure?.directions) && (
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <h4 className="font-medium text-gray-900 mb-2">{departure.point}</h4>
+                <p className="text-gray-600 leading-relaxed">{departure.directions}</p>
               </div>
+            )}
+            {startTimes.length > 0 && (
               <div>
-                <h4 className="font-medium mb-3">Available Start Times</h4>
+                <h4 className="font-medium text-gray-900 mb-4">Available Start Times</h4>
                 <div className="flex flex-wrap gap-2">
-                  {departure.startTimes.map((time, index) => (
+                  {startTimes.map((time, index) => (
                     <span
                       key={index}
-                      className="px-4 py-2 bg-gray-50 rounded-full text-sm"
+                      className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium transition-colors duration-300 hover:bg-blue-100"
                     >
                       {time}
                     </span>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ExpandableSection>
 
-        {/* Cancellation Policy */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('cancellation')}
-            className="w-full flex items-center justify-between p-6 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="w-6 h-6" />
-              <h3 className="text-lg font-medium">Cancellation Policy</h3>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 transition-transform ${
-                expandedSection === 'cancellation' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          
-          {expandedSection === 'cancellation' && (
-            <div className="px-6 pb-6 space-y-4">
-              <p className="text-sm">{cancellation.policy}</p>
+        <ExpandableSection 
+          id="cancellation" 
+          icon={ShieldCheck} 
+          title="Cancellation Policy"
+          condition={!!(cancellation?.policy || cancellation?.refundPolicy || cancellation?.noRefundPolicy)}
+        >
+          <div className="space-y-4">
+            {cancellation?.policy && (
+              <p className="text-gray-600 leading-relaxed">{cancellation.policy}</p>
+            )}
+            {cancellation?.refundPolicy && (
               <div className="p-4 bg-green-50 rounded-xl">
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5" />
-                  <p className="text-sm text-green-800">{cancellation.refundPolicy}</p>
+                  <p className="text-green-800">{cancellation.refundPolicy}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Info className="w-5 h-5 text-gray-400 mt-0.5" />
-                <p className="text-sm text-gray-600">{cancellation.noRefundPolicy}</p>
+            )}
+            {cancellation?.noRefundPolicy && (
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-gray-500 mt-0.5" />
+                  <p className="text-gray-600">{cancellation.noRefundPolicy}</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ExpandableSection>
 
-        {/* FAQ Section */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('faq')}
-            className="w-full flex items-center justify-between p-6 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <HelpCircle className="w-6 h-6" />
-              <h3 className="text-lg font-medium">FAQ</h3>
-            </div>
-            <ChevronDown 
-              className={`w-5 h-5 transition-transform ${
-                expandedSection === 'faq' ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          
-          {expandedSection === 'faq' && (
-            <div className="px-6 pb-6">
-              <div className="space-y-4">
-                {faq.map((item, index) => (
-                  <div key={index} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
-                    <h4 className="font-medium mb-2">{item.question}</h4>
-                    <p className="text-sm text-gray-600">{item.answer}</p>
-                  </div>
-                ))}
+        <ExpandableSection 
+          id="faq" 
+          icon={HelpCircle} 
+          title="FAQ"
+          condition={faq.length > 0}
+        >
+          <div className="space-y-6">
+            {faq.map((item, index) => (
+              <div 
+                key={index} 
+                className="p-4 bg-gray-50 rounded-xl last:mb-0"
+              >
+                <h4 className="font-medium text-gray-900 mb-2">{item.question}</h4>
+                <p className="text-gray-600 leading-relaxed">{item.answer}</p>
               </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        </ExpandableSection>
       </div>
     </div>
   );

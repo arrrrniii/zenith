@@ -1,3 +1,4 @@
+//components/client/trips/TripDetail/index.js
 import React from 'react';
 import { Share2, Heart } from 'lucide-react';
 import ImageGallery from './ImageGallery';

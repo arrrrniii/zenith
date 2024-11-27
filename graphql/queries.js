@@ -260,7 +260,9 @@ export const GET_TOUR_BY_ID = gql`
       created_at
       updated_at
       
+      # Tour pricing with more detailed fields
       tour_pricing {
+        id
         price_per_person
         max_capacity
         early_bird_discount_percentage
@@ -270,6 +272,7 @@ export const GET_TOUR_BY_ID = gql`
         deposit_requirements
       }
       
+      # Accessibility features
       tour_accessibility_feature {
         wheelchair_accessible
         mobility_aid
@@ -281,7 +284,8 @@ export const GET_TOUR_BY_ID = gql`
         notes
       }
       
-      tour_activities {
+      # Activities for the schedule
+      tour_activities(order_by: { sequence_order: asc }) {
         id
         title
         duration
@@ -290,10 +294,10 @@ export const GET_TOUR_BY_ID = gql`
         sequence_order
       }
       
+      # Available dates
       tour_dates(
         where: { date: { _gte: "now()" } }
         order_by: { date: asc }
-        limit: 10
       ) {
         id
         date
@@ -303,6 +307,7 @@ export const GET_TOUR_BY_ID = gql`
         available_spots
       }
       
+      # Inclusions with type
       tour_inclusions {
         id
         type
@@ -311,7 +316,6 @@ export const GET_TOUR_BY_ID = gql`
     }
   }
 `;
-
 // Separate query for similar tours
 export const GET_SIMILAR_TOURS = gql`
   query GetSimilarTours($tourType: String!, $currentTourId: uuid!) {
