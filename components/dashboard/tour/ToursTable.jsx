@@ -1,39 +1,33 @@
-// components/tours/ToursTable.jsx
-import { useState } from 'react';
+// components/dashboard/tour/ToursTable.jsx
+import React, { useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TourTableRow } from './TourTableRow';
 
 export const ToursTable = ({ 
-  tours, 
+  tours = [], 
   loading, 
   onEdit, 
   onDelete, 
-  page, 
-  pageSize, 
-  totalCount, 
-  onPageChange 
+  page = 1, 
+  pageSize = 10, 
+  totalCount = 0, 
+  onStatusChange, 
+  onPageChange
 }) => {
   const [selectedTours, setSelectedTours] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const toggleSelectAll = () => {
-    setSelectedTours(selectedTours.length === tours.length ? [] : tours.map(tour => tour.id));
+    setSelectedTours(prev => prev.length === tours.length ? [] : tours.map(tour => tour.id));
   };
 
   const toggleSelect = (tourId) => {
-    setSelectedTours(prev => 
-      prev.includes(tourId) 
-        ? prev.filter(id => id !== tourId)
-        : [...prev, tourId]
+    setSelectedTours(prev => prev.includes(tourId) 
+      ? prev.filter(id => id !== tourId)
+      : [...prev, tourId]
     );
-  };
-
-  const handleDelete = async (ids) => {
-    if (window.confirm('Are you sure you want to delete the selected tours?')) {
-      await onDelete(ids);
-      setSelectedTours([]);
-    }
   };
 
   const handleSort = (key) => {
@@ -47,7 +41,7 @@ export const ToursTable = ({
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8">
         <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-20 bg-gray-100 rounded" />
           ))}
         </div>
@@ -61,64 +55,65 @@ export const ToursTable = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      {/* Table Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-4">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={selectedTours.length === tours.length}
-            onChange={toggleSelectAll}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            onCheckedChange={toggleSelectAll}
           />
           {selectedTours.length > 0 && (
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-500">
                 {selectedTours.length} selected
               </span>
-              <button 
-                onClick={() => handleDelete(selectedTours)}
+              <Button 
+                variant="ghost"
                 className="text-sm text-red-600 hover:text-red-700"
+                onClick={() => onDelete(selectedTours)}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           )}
         </div>
+
         <div className="flex items-center space-x-4">
-          <button 
+          <Button 
+            variant="ghost"
             onClick={() => handleSort('created_at')}
             className="flex items-center text-sm text-gray-500 hover:text-gray-700"
           >
             Date {sortConfig.key === 'created_at' && (
               <ArrowUpDown className="w-4 h-4 ml-1" />
             )}
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="ghost"
             onClick={() => handleSort('title')}
             className="flex items-center text-sm text-gray-500 hover:text-gray-700"
           >
             Name {sortConfig.key === 'title' && (
               <ArrowUpDown className="w-4 h-4 ml-1" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Table Content */}
       <div className="divide-y divide-gray-200">
         {tours.map((tour) => (
           <TourTableRow
             key={tour.id}
             tour={tour}
-            onEdit={onEdit}
-            onDelete={onDelete}
+            onEdit={() => onEdit(tour)}
+            onDelete={() => onDelete([tour.id])}
             isSelected={selectedTours.includes(tour.id)}
             onToggleSelect={() => toggleSelect(tour.id)}
+            onStatusChange={onStatusChange}  // Pass it here
+
           />
         ))}
       </div>
 
-      {/* Table Footer */}
       <div className="flex items-center justify-between p-4 border-t border-gray-200">
         <div className="text-sm text-gray-500">
           Showing {startItem} to {endItem} of {totalCount} tours
@@ -145,4 +140,3 @@ export const ToursTable = ({
     </div>
   );
 };
-

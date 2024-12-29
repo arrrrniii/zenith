@@ -1,3 +1,4 @@
+//components/dashboard/tour/create/Activities.jsx
 import React from 'react';
 import { Plus, GripVertical, Clock, X } from 'lucide-react';
 import FormSection from './FormSection';

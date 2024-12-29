@@ -121,6 +121,7 @@ export const UPDATE_BLOG = gql`
 
     insert_blog_content_blocks(
       objects: $content_blocks
+      # Each object in content_blocks should include blog_id: $id
     ) {
       returning {
         id
@@ -192,3 +193,30 @@ export const DELETE_BLOG = gql`
   }
 `;
 
+export const GET_BLOG_BY_SLUG = gql`
+  query GetBlogBySlug($slug: String!) {
+    blogs(where: { 
+      slug: { _eq: $slug },
+      status: { _eq: "PUBLISHED" }
+    }, limit: 1) {
+      id
+      title
+      titletag
+      slug
+      description
+      keywords
+      thumbnail_url
+      category
+      status
+      created_at
+      updated_at
+      blog_content_blocks(order_by: { order_index: asc }) {
+        id
+        type
+        content
+        order_index
+        parent_block_id
+      }
+    }
+  }
+`;

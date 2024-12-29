@@ -1,15 +1,13 @@
-//pages/trip/[id].js
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useQuery } from '@apollo/client';
+import { client } from '@/lib/apollo-client';
 import { GET_TOUR_BY_ID, GET_SIMILAR_TOURS } from '@/graphql/queries';
 import TripDetail from '@/components/client/trips/TripDetail';
 
 const transformTourData = (tour) => {
   if (!tour) return null;
 
-  // Process tour activities into schedule
+  // Process schedule (activities)
   const schedule = tour.tour_activities?.map(activity => ({
     time: activity.duration,
     activity: activity.title,
@@ -31,16 +29,25 @@ const transformTourData = (tour) => {
     ?.filter(date => new Date(date.date) >= new Date())
     .sort((a, b) => new Date(a.date) - new Date(b.date)) || [];
 
-  // Get unique start times
+  // Unique start times
   const startTimes = [...new Set(tour.tour_dates
     ?.map(date => date.start_time)
     .filter(Boolean))] || [];
 
+  // Combine main_image_url with gallery images
+  let images = [];
+  if (tour.main_image_url) {
+    images.push(tour.main_image_url);
+  }
+  if (tour.tour_galleries && tour.tour_galleries.length > 0) {
+    images = images.concat(tour.tour_galleries.map(g => g.image_url));
+  }
+
   return {
     id: tour.id,
-    title: tour.title,
-    description: tour.description,
-    images: tour.main_image_url ? [tour.main_image_url] : [],
+    title: tour.title || null,
+    description: tour.description || null,
+    images, // Now includes main image (if any) + gallery images
     rating: tour.rating || 0,
     reviews: tour.review_count || 0,
     providedBy: tour.provider_name || 'Tour Provider',
@@ -49,7 +56,7 @@ const transformTourData = (tour) => {
       amount: tour.tour_pricing?.price_per_person || 0,
       currency: 'USD',
       unit: 'per person',
-      originalPrice: tour.tour_pricing?.original_price,
+      originalPrice: tour.tour_pricing?.original_price || null,
       savings: tour.tour_pricing?.early_bird_discount_percentage 
         ? `Save ${tour.tour_pricing.early_bird_discount_percentage}%` 
         : null,
@@ -126,48 +133,26 @@ const transformTourData = (tour) => {
   };
 };
 
-const TripPage = () => {
-  const router = useRouter();
-  const { id } = router.query;
+const TripPage = ({ tourData, similarToursData, error }) => {
   const [isSaved, setIsSaved] = useState(false);
 
-  const { 
-    data: tourData, 
-    loading: tourLoading, 
-    error: tourError 
-  } = useQuery(GET_TOUR_BY_ID, {
-    variables: { id },
-    skip: !id
-  });
-
-  const { 
-    data: similarToursData, 
-    loading: similarToursLoading 
-  } = useQuery(GET_SIMILAR_TOURS, {
-    variables: { 
-      tourType: tourData?.tours_by_pk?.tour_type || '',
-      currentTourId: id
-    },
-    skip: !tourData?.tours_by_pk?.tour_type
-  });
-
   useEffect(() => {
-    if (id) {
+    if (tourData?.id) {
       try {
         const savedTrips = JSON.parse(localStorage.getItem('savedTrips') || '[]');
-        setIsSaved(savedTrips.includes(id));
+        setIsSaved(savedTrips.includes(tourData.id));
       } catch (error) {
         console.error('Error loading saved trips:', error);
       }
     }
-  }, [id]);
+  }, [tourData?.id]);
 
   const handleSave = () => {
     try {
       const savedTrips = JSON.parse(localStorage.getItem('savedTrips') || '[]');
       const newSavedTrips = isSaved
-        ? savedTrips.filter(tripId => tripId !== id)
-        : [...savedTrips, id];
+        ? savedTrips.filter(tripId => tripId !== tourData.id)
+        : [...savedTrips, tourData.id];
       
       localStorage.setItem('savedTrips', JSON.stringify(newSavedTrips));
       setIsSaved(!isSaved);
@@ -180,8 +165,8 @@ const TripPage = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: tourData?.tours_by_pk?.title,
-          text: tourData?.tours_by_pk?.description,
+          title: tourData.title,
+          text: tourData.description,
           url: window.location.href
         });
       } else {
@@ -198,53 +183,30 @@ const TripPage = () => {
       const recentActivity = JSON.parse(localStorage.getItem('recentActivity') || '[]');
       recentActivity.unshift({
         type: 'booking_attempt',
-        tripId: id,
+        tripId: tourData.id,
         timestamp: new Date().toISOString()
       });
       localStorage.setItem('recentActivity', JSON.stringify(recentActivity.slice(0, 10)));
   
-      // Construct query parameters
       const queryParams = new URLSearchParams();
-      
-      // Add date if available
-      if (bookingDetails.selectedDate) {
-        queryParams.append('date', bookingDetails.selectedDate);
-      }
-      
-      // Add quantity if available
-      if (bookingDetails.quantity) {
-        queryParams.append('quantity', bookingDetails.quantity);
-      }
+      if (bookingDetails.selectedDate) queryParams.append('date', bookingDetails.selectedDate);
+      if (bookingDetails.quantity) queryParams.append('quantity', bookingDetails.quantity);
   
-      // Construct the URL
       const queryString = queryParams.toString();
-      const url = `/checkout/${id}${queryString ? `?${queryString}` : ''}`;
-  
-      router.push(url);
+      window.location.href = `/checkout/${tourData.id}${queryString ? `?${queryString}` : ''}`;
     } catch (error) {
       console.error('Error storing recent activity:', error);
     }
   };
 
-  if (tourLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading experience details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (tourError) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600">Error</h2>
-          <p className="mt-2 text-gray-600">{tourError.message}</p>
+          <p className="mt-2 text-gray-600">{error}</p>
           <button 
-            onClick={() => router.reload()}
+            onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Try Again
@@ -254,16 +216,14 @@ const TripPage = () => {
     );
   }
 
-  const transformedTour = transformTourData(tourData?.tours_by_pk);
-
-  if (!transformedTour) {
+  if (!tourData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Experience Not Found</h2>
           <p className="mt-2 text-gray-600">The experience you're looking for doesn't exist or has been removed.</p>
           <button 
-            onClick={() => router.push('/')}
+            onClick={() => window.location.href = '/'}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Back to Home
@@ -273,38 +233,28 @@ const TripPage = () => {
     );
   }
 
-  // Add similar tours to the transformed data
-  transformedTour.similarTrips = similarToursData?.tours.map(similarTour => ({
-    id: similarTour.id,
-    title: similarTour.title,
-    image: similarTour.main_image_url,
-    price: similarTour.tour_pricing?.price_per_person,
-    rating: similarTour.rating,
-    category: similarTour.tour_type,
-    bookings: similarTour.tour_dates_aggregate.aggregate.count
-  })) || [];
-
   return (
     <>
       <Head>
-        <title>{`${transformedTour.title} - Your Tours`}</title>
-        <meta name="description" content={transformedTour.description} />
-        <meta property="og:title" content={transformedTour.title} />
-        <meta property="og:description" content={transformedTour.description} />
-        <meta property="og:image" content={transformedTour.images[0]} />
+        <title>{`${tourData.title} - Your Tours`}</title>
+        <meta name="description" content={tourData.description} />
+        <meta property="og:title" content={tourData.title} />
+        <meta property="og:description" content={tourData.description} />
+        <meta property="og:image" content={tourData.images[0]} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL}/trip/${id}`} />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL}/trip/${tourData.id}`} />
       </Head>
       
       <div className="min-h-screen flex flex-col">
         <main className="flex-grow">
           <TripDetail
-            {...transformedTour}
+            {...tourData}
+            similarTrips={similarToursData || []}
             onSave={handleSave}
             onShare={handleShare}
             onBook={handleBook}
             isSaved={isSaved}
-            isLoadingSimilar={similarToursLoading}
+            isLoadingSimilar={false}
             navigationLinks={[]}
             footerLinks={[]}
             logoUrl=""
@@ -315,5 +265,56 @@ const TripPage = () => {
     </>
   );
 };
+
+export async function getServerSideProps({ params }) {
+  try {
+    const { data: tourResult } = await client.query({
+      query: GET_TOUR_BY_ID,
+      variables: { id: params.id }
+    });
+
+    if (!tourResult?.tours_by_pk) {
+      return {
+        props: {
+          tourData: null
+        }
+      };
+    }
+
+    const transformedTour = transformTourData(tourResult.tours_by_pk);
+
+    const { data: similarToursResult } = await client.query({
+      query: GET_SIMILAR_TOURS,
+      variables: { 
+        tourType: tourResult.tours_by_pk.tour_type,
+        currentTourId: params.id
+      }
+    });
+
+    const similarTours = similarToursResult?.tours.map(similarTour => ({
+      id: similarTour.id,
+      title: similarTour.title,
+      image: similarTour.main_image_url,
+      price: similarTour.tour_pricing?.price_per_person || 0,
+      rating: similarTour.rating || 0,
+      category: similarTour.tour_type || 'Tour',
+      bookings: similarTour.tour_dates_aggregate?.aggregate?.count || 0
+    })) || [];
+
+    return {
+      props: {
+        tourData: JSON.parse(JSON.stringify(transformedTour)),
+        similarToursData: JSON.parse(JSON.stringify(similarTours))
+      }
+    };
+  } catch (error) {
+    console.error('Error in getServerSideProps:', error);
+    return {
+      props: {
+        error: 'Failed to load tour data'
+      }
+    };
+  }
+}
 
 export default TripPage;

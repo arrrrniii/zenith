@@ -78,7 +78,7 @@ const HomePage = () => {
     variables: {
       limit: 4,
       where: {
-        status: { _eq: "active" },
+        status: { _eq: "published" },
         tour_dates: { date: { _gte: "now()" } }
       }
     }

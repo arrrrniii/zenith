@@ -1,3 +1,5 @@
+//components/dashboard/attractions/graphql/operations.js
+
 import { gql } from '@apollo/client';
 
 // Common fragments to reuse across queries

@@ -82,46 +82,50 @@ const ServiceDialog = ({ service, onClose, onSave }) => {
     try {
       const status = (formData.status || 'DRAFT').toUpperCase();
       
-      const formattedContentBlocks = blocks.map((block, index) => ({
-        type: block.type,
-        content: JSON.stringify(block.content),
-        order_index: index,
-        parent_block_id: block.parentId || null
-      }));
-  
-      const commonVariables = {
-        title: formData.title.trim(),
-        titletag: formData.titletag.trim(),
-        slug: formData.slug.trim(),
-        description: formData.description?.trim() || '',
-        keywords: formData.keywords?.trim() || '',
-        thumbnail_url: formData.thumbnailUrl || '',
-        status
-      };
-  
-      console.log('Submitting with variables:', {
-        ...commonVariables,
-        blog_content_blocks: formattedContentBlocks
-      });
-  
-      if (service?.id) {
+      // For new blog posts
+      if (!service?.id) {
+        const { data: insertData } = await insertService({
+          variables: {
+            title: formData.title.trim(),
+            titletag: formData.titletag.trim(),
+            slug: formData.slug.trim(),
+            description: formData.description?.trim() || '',
+            keywords: formData.keywords?.trim() || '',
+            thumbnail_url: formData.thumbnailUrl || '',
+            status,
+            content_blocks: blocks.map((block, index) => ({
+              type: block.type,
+              content: JSON.stringify(block.content),
+              order_index: index,
+              parent_block_id: block.parentId || null
+            }))
+          }
+        });
+        onSave(insertData.insert_blogs_one);
+      } 
+      // For updating existing blog posts
+      else {
         await updateService({
           variables: {
             id: service.id,
-            ...commonVariables,
-            content_blocks: formattedContentBlocks // Match UPDATE_BLOG mutation variable name
+            title: formData.title.trim(),
+            titletag: formData.titletag.trim(),
+            slug: formData.slug.trim(),
+            description: formData.description?.trim() || '',
+            keywords: formData.keywords?.trim() || '',
+            thumbnail_url: formData.thumbnailUrl || '',
+            status,
+            content_blocks: blocks.map((block, index) => ({
+              type: block.type,
+              content: JSON.stringify(block.content),
+              order_index: index,
+              parent_block_id: block.parentId || null,
+              blog_id: service.id  // This is the crucial addition
+            }))
           }
         });
-      } else {
-        await insertService({
-          variables: {
-            ...commonVariables,
-            content_blocks: formattedContentBlocks // Match INSERT_BLOG mutation variable name
-          }
-        });
+        onSave(service);
       }
-  
-      onSave();
     } catch (error) {
       console.error('Error saving blog:', error);
       toast({

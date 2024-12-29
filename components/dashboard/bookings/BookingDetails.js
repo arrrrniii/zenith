@@ -1,135 +1,180 @@
+// BookingDetails.js
 import React from 'react';
 import { useRouter } from 'next/router';
 import { 
-  ArrowLeft,
-  Calendar,
-  Clock,
-  Users,
-  DollarSign,
-  Mail,
-  Phone,
-  MapPin,
-  MessageSquare,
-  Download,
-  Printer,
-  Edit,
-  Check
+  ArrowLeft, Calendar, Clock, Users, DollarSign, 
+  Mail, Phone, MapPin, MessageSquare, Check, CreditCard
 } from 'lucide-react';
 import BookingStatusBadge from './BookingStatusBadge';
+import BookingActions from './BookingActions';
 
-const InfoCard = ({ title, children }) => (
-  <div className="bg-white rounded-lg border border-gray-200">
+// Subcomponent for consistent info cards
+const InfoCard = ({ title, children, className = '' }) => (
+  <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
     <div className="px-6 py-4 border-b border-gray-200">
       <h3 className="text-lg font-medium text-gray-900">{title}</h3>
     </div>
-    <div className="px-6 py-4">
-      {children}
-    </div>
+    <div className="px-6 py-4">{children}</div>
   </div>
 );
 
-const DetailRow = ({ label, value }) => (
-  <div className="flex justify-between py-2">
-    <span className="text-sm text-gray-500">{label}</span>
+// Enhanced detail row with optional icon and styling
+const DetailRow = ({ label, value, icon: Icon, className = '' }) => (
+  <div className={`flex justify-between items-center py-2 ${className}`}>
+    <span className="flex items-center text-sm text-gray-500">
+      {Icon && <Icon className="w-4 h-4 mr-2 text-gray-400" />}
+      {label}
+    </span>
     <span className="text-sm font-medium text-gray-900">{value}</span>
   </div>
 );
 
-const Timeline = ({ events }) => (
-  <div className="flow-root">
-    <ul className="-mb-8">
-      {events.map((event, eventIdx) => (
-        <li key={event.id}>
-          <div className="relative pb-8">
-            {eventIdx !== events.length - 1 ? (
-              <span
-                className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                aria-hidden="true"
-              />
-            ) : null}
-            <div className="relative flex space-x-3">
-              <div>
-                <span className={`
-                  h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white
-                  ${event.type === 'status' ? 'bg-blue-500' : 
-                    event.type === 'message' ? 'bg-green-500' : 
-                    'bg-gray-500'
-                  }
-                `}>
-                  {event.icon}
-                </span>
-              </div>
-              <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                <div>
-                  <p className="text-sm text-gray-500">{event.content}</p>
+// Enhanced timeline component
+const Timeline = ({ booking }) => {
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).format(date);
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return '';
+    }
+  };
+
+  const generateTimelineEvents = () => {
+    const events = [
+      {
+        id: 'booking-created',
+        type: 'status',
+        content: 'Booking created',
+        date: formatDate(booking.bookingDate),
+        datetime: booking.bookingDate,
+        icon: <Check className="h-5 w-5 text-white" />
+      }
+    ];
+
+    if (booking.paymentStatus === 'paid') {
+      events.push({
+        id: 'payment-received',
+        type: 'payment',
+        content: 'Payment received',
+        date: formatDate(booking.paymentDate || booking.bookingDate),
+        datetime: booking.paymentDate || booking.bookingDate,
+        icon: <CreditCard className="h-5 w-5 text-white" />
+      });
+    }
+
+    // Add tour date as a future event if it hasn't occurred yet
+    const tourDate = new Date(booking.date);
+    if (tourDate > new Date()) {
+      events.push({
+        id: 'tour-scheduled',
+        type: 'upcoming',
+        content: 'Tour scheduled',
+        date: formatDate(booking.date),
+        datetime: booking.date,
+        icon: <Calendar className="h-5 w-5 text-white" />
+      });
+    }
+
+    return events;
+  };
+
+  const events = generateTimelineEvents();
+
+  return (
+    <div className="flow-root">
+      {events.length === 0 ? (
+        <div className="text-sm text-gray-500 py-4">No timeline events</div>
+      ) : (
+        <ul className="-mb-8">
+          {events.map((event, eventIdx) => (
+            <li key={event.id}>
+              <div className="relative pb-8">
+                {eventIdx !== events.length - 1 && (
+                  <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                )}
+                <div className="relative flex space-x-3">
+                  <div>
+                    <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white
+                      ${event.type === 'status' ? 'bg-blue-500' : 
+                        event.type === 'payment' ? 'bg-emerald-500' : 
+                        'bg-purple-500'}`}>
+                      {event.icon}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                    <div>
+                      <p className="text-sm text-gray-900 font-medium">{event.content}</p>
+                    </div>
+                    <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                      <time dateTime={event.datetime}>{event.date}</time>
+                    </div>
+                  </div>
                 </div>
-                <div className="whitespace-nowrap text-right text-sm text-gray-500">
-                  <time dateTime={event.datetime}>{event.date}</time>
-                </div>
               </div>
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 const BookingDetails = ({ booking }) => {
   const router = useRouter();
 
-  // Sample timeline events
-  const timelineEvents = [
-    {
-      id: 1,
-      type: 'status',
-      content: 'Booking confirmed',
-      date: '2 hours ago',
-      datetime: '2024-03-16T13:00',
-      icon: <Check className="h-5 w-5 text-white" />
-    },
-    {
-      id: 2,
-      type: 'message',
-      content: 'Sent confirmation email to customer',
-      date: '2 hours ago',
-      datetime: '2024-03-16T13:00',
-      icon: <Mail className="h-5 w-5 text-white" />
+  const formatCurrency = (amount) => (
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount)
+  );
+
+  const formatDate = (dateString) => (
+    new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  );
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      // Add your status update logic here
+      console.log('Status changed:', newStatus);
+    } catch (error) {
+      console.error('Error updating status:', error);
     }
-  ];
+  };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div id="booking-details" className="max-w-7xl mx-auto">
       {/* Top Navigation */}
       <div className="flex items-center justify-between mb-6">
         <button 
           onClick={() => router.back()}
-          className="flex items-center text-sm text-gray-600 hover:text-gray-900"
+          className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 no-print"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Bookings
         </button>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Printer className="w-4 h-4 mr-2" />
-            Print
-          </button>
-          <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
-          </button>
-          <button className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Booking
-          </button>
-        </div>
+        <BookingActions booking={booking} />
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left Column - Booking Details */}
-        <div className="col-span-2 space-y-6">
-          {/* Booking Header */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Information */}
+        <div className="lg:col-span-2 space-y-6">
           <InfoCard title="Booking Information">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -138,109 +183,116 @@ const BookingDetails = ({ booking }) => {
                     Booking #{booking.bookingNumber}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Made on {booking.bookingDate}
+                    Made on {formatDate(booking.bookingDate)}
                   </p>
                 </div>
                 <BookingStatusBadge status={booking.status} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                  Tour Date: {booking.date}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                  Start Time: {booking.time}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Users className="w-4 h-4 mr-2 text-gray-400" />
-                  Participants: {booking.participants}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
-                  Total Amount: ${booking.totalAmount}
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <DetailRow 
+                  icon={Calendar}
+                  label="Tour Date"
+                  value={formatDate(booking.date)}
+                />
+                <DetailRow 
+                  icon={Clock}
+                  label="Start Time"
+                  value={booking.time}
+                />
+                <DetailRow 
+                  icon={Users}
+                  label="Participants"
+                  value={booking.participants}
+                />
+                <DetailRow 
+                  icon={DollarSign}
+                  label="Total Amount"
+                  value={formatCurrency(booking.totalAmount)}
+                />
               </div>
             </div>
           </InfoCard>
 
-          {/* Tour Information */}
           <InfoCard title="Tour Details">
             <div className="space-y-4">
               <h4 className="text-lg font-medium text-gray-900">
                 {booking.tourName}
               </h4>
-              <div className="flex items-center text-sm text-gray-600">
-                <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                Meeting Point: {booking.meetingPoint}
-              </div>
-              <p className="text-sm text-gray-600">
+              <DetailRow 
+                icon={MapPin}
+                label="Meeting Point"
+                value={booking.meetingPoint}
+              />
+              <p className="text-sm text-gray-600 mt-4">
                 {booking.tourDescription}
               </p>
             </div>
           </InfoCard>
 
-          {/* Activity Timeline */}
           <InfoCard title="Activity Timeline">
-            <Timeline events={timelineEvents} />
+            <Timeline booking={booking} />
           </InfoCard>
         </div>
 
-        {/* Right Column - Customer Details & Actions */}
+        {/* Right Column - Additional Information */}
         <div className="space-y-6">
-          {/* Customer Information */}
           <InfoCard title="Customer Information">
             <div className="space-y-4">
-              <div>
-                <h4 className="text-base font-medium text-gray-900">
-                  {booking.customerName}
-                </h4>
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                    {booking.customerEmail}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                    {booking.customerPhone}
-                  </div>
-                </div>
-              </div>
+              <h4 className="text-base font-medium text-gray-900">
+                {booking.customerName}
+              </h4>
+              <DetailRow 
+                icon={Mail}
+                label="Email"
+                value={booking.customerEmail}
+              />
+              <DetailRow 
+                icon={Phone}
+                label="Phone"
+                value={booking.customerPhone}
+              />
             </div>
           </InfoCard>
 
-          {/* Quick Actions */}
-          <InfoCard title="Actions">
+          <InfoCard title="Quick Actions">
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Message
               </button>
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
                 <Mail className="w-4 h-4 mr-2" />
                 Resend Confirmation
               </button>
             </div>
           </InfoCard>
 
-          {/* Payment Information */}
           <InfoCard title="Payment Details">
             <div className="space-y-3">
-              <DetailRow label="Subtotal" value={`$${booking.subtotal}`} />
-              <DetailRow label="Tax" value={`$${booking.tax}`} />
-              <DetailRow label="Total" value={`$${booking.totalAmount}`} />
-              <DetailRow label="Payment Status" value={booking.paymentStatus} />
+              <DetailRow label="Subtotal" value={formatCurrency(booking.subtotal)} />
+              <DetailRow label="Tax" value={formatCurrency(booking.tax)} />
+              <div className="border-t pt-2 mt-2">
+                <DetailRow 
+                  label="Total Amount" 
+                  value={formatCurrency(booking.totalAmount)}
+                  className="font-semibold"
+                />
+              </div>
+              <DetailRow 
+                label="Payment Status" 
+                value={booking.paymentStatus}
+                className="text-emerald-600"
+              />
               <DetailRow label="Payment Method" value={booking.paymentMethod} />
             </div>
           </InfoCard>
 
-          {/* Status Management */}
           <InfoCard title="Manage Status">
             <select 
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={booking.status}
-              onChange={(e) => console.log('Status changed:', e.target.value)}
+              onChange={(e) => handleStatusChange(e.target.value)}
             >
               <option value="confirmed">Confirmed</option>
               <option value="pending">Pending</option>

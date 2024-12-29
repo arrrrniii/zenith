@@ -1,4 +1,3 @@
-// graphql/bookings.js
 import { gql } from '@apollo/client';
 
 // Fragments
@@ -70,6 +69,65 @@ export const GET_BOOKING = gql`
           name
           description
         }
+      }
+    }
+  }
+  ${BOOKING_FIELDS}
+`;
+
+// Query to get booking status with payment details
+export const GET_BOOKING_STATUS = gql`
+  ${BOOKING_FIELDS}
+  query GetBookingStatus($id: uuid!) {
+    bookings_by_pk(id: $id) {
+      ...BookingFields
+      booking_payments {
+        id
+        amount
+        payment_method
+        transaction_id
+        payment_status
+        payment_date
+      }
+    }
+  }
+`;
+
+// Updated mutation to handle booking and payment updates
+export const UPDATE_BOOKING_PAYMENT = gql`
+  mutation UpdateBookingPayment(
+    $booking_id: uuid!,
+    $payment_data: booking_payments_insert_input!,
+    $booking_status: booking_status!,
+    $payment_status: payment_status!
+  ) {
+    # Insert payment record
+    insert_booking_payments_one(object: $payment_data) {
+      id
+      booking_id
+      amount
+      payment_method
+      transaction_id
+      payment_status
+      payment_date
+    }
+    # Update booking statuses
+    update_bookings_by_pk(
+      pk_columns: { id: $booking_id },
+      _set: { 
+        payment_status: $payment_status,
+        booking_status: $booking_status,
+        updated_at: "now()"
+      }
+    ) {
+      ...BookingFields
+      booking_payments {
+        id
+        amount
+        payment_method
+        transaction_id
+        payment_status
+        payment_date
       }
     }
   }

@@ -33,14 +33,33 @@ const ErrorState = ({ message, onBack }) => (
   </div>
 );
 
+// Helper to format DB date to "YYYY-MM-DD" in local time
+const formatToLocalYYYYMMDD = (dateObj) => dateObj.toLocaleDateString('en-CA');
+
 const transformTourData = (tour, selectedDate, quantity) => {
   if (!tour) return null;
 
   const parsedQuantity = parseInt(quantity) || 1;
-  
-  const selectedDateInfo = tour.tour_dates.find(
-    date => new Date(date.date).toISOString().split('T')[0] === selectedDate
-  );
+
+  // Debug logs
+  console.log("Selected date param =>", selectedDate);
+  console.log("All DB dates =>", tour?.tour_dates?.map(d => d.date));
+
+  // Attempt to find a matching date
+  const selectedDateInfo = tour?.tour_dates?.find((tourDate) => {
+    const dbDate = new Date(tourDate.date);
+    const localFormatted = formatToLocalYYYYMMDD(dbDate);
+
+    console.log("[DEBUG] Comparing:", {
+      rawDBDate: tourDate.date,
+      localFormatted,
+      selectedDate,
+    });
+
+    return localFormatted === selectedDate;
+  });
+
+  console.log("selectedDateInfo =>", selectedDateInfo);
 
   // Process inclusions
   const includedItems = tour.tour_inclusions
@@ -83,30 +102,27 @@ const transformTourData = (tour, selectedDate, quantity) => {
     cancellationPolicy: tour.tour_pricing?.refund_policy || '',
     maxCapacity: tour.tour_pricing?.max_capacity || 10,
     tourType: tour.tour_type || 'Standard Tour',
-    status: tour.status || 'active'
+    status: tour.status || 'published'
   };
 };
 
 const validateCheckoutParams = (date, quantity, maxCapacity = 10) => {
   const errors = [];
-
-  // Validate date
   if (!date) {
     errors.push('Date is required');
   } else {
     const isValidDate = !isNaN(Date.parse(date));
-    const selectedDate = new Date(date);
+    const selectedDateObj = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (!isValidDate) {
       errors.push('Invalid date format');
-    } else if (selectedDate < today) {
+    } else if (selectedDateObj < today) {
       errors.push('Selected date cannot be in the past');
     }
   }
 
-  // Validate quantity
   if (!quantity) {
     errors.push('Quantity is required');
   } else {
@@ -126,13 +142,13 @@ export default function CheckoutPageWrapper() {
   const { id, date, quantity } = router.query;
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const { 
-    data, 
-    loading: isLoading, 
-    error: tourError 
-  } = useQuery(GET_TOUR_BY_ID, {
+  // NOTE: If removing `where: { date: { _gte: "now()" } }` helps,
+  // that means your date is not recognized as future by Hasura. 
+  // Use the version below to see ALL tour_dates for debugging:
+  const { data, loading: isLoading, error: tourError } = useQuery(GET_TOUR_BY_ID, {
     variables: { id },
     skip: !id,
+    // fetchPolicy: 'no-cache' // (optional) to ensure fresh data
   });
 
   // Initialize booking hook
@@ -143,7 +159,6 @@ export default function CheckoutPageWrapper() {
     isProcessing
   } = useBookTour(data?.tours_by_pk, date);
 
-  // Process booking
   const processBooking = async (formData) => {
     try {
       setIsRedirecting(true);
@@ -161,7 +176,6 @@ export default function CheckoutPageWrapper() {
     if (id && date && quantity && data?.tours_by_pk) {
       const maxCapacity = data.tours_by_pk.tour_pricing?.max_capacity || 10;
       const validationErrors = validateCheckoutParams(date, quantity, maxCapacity);
-      
       if (validationErrors.length > 0) {
         router.replace({
           pathname: '/404',
@@ -212,8 +226,8 @@ export default function CheckoutPageWrapper() {
   }
 
   const tour = data.tours_by_pk;
-  
-  if (tour.status !== 'active') {
+
+  if (tour.status !== 'published') {
     return (
       <ErrorState 
         message="This tour is currently not available for booking." 
@@ -224,6 +238,7 @@ export default function CheckoutPageWrapper() {
 
   const transformedData = transformTourData(tour, date, quantity);
 
+  // If the date was found but availableSpots is < needed participants
   if (transformedData.availableSpots < parseInt(quantity)) {
     return (
       <ErrorState 

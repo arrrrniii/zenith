@@ -1,4 +1,4 @@
-// lib/apollo-client.ts
+//lib/apollo-client.ts
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 
 const httpLink = createHttpLink({
@@ -10,7 +10,26 @@ const httpLink = createHttpLink({
 
 export const client = new ApolloClient({
   link: httpLink,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          tours: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+            keyArgs: ["where", "order_by"]
+          },
+          tours_aggregate: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+            keyArgs: ["where"]
+          }
+        }
+      }
+    }
+  }),
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network'

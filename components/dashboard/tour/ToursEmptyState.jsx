@@ -19,12 +19,6 @@ export const ToursEmptyState = () => {
           Get started by creating your first tour or import existing tours from a spreadsheet.
         </p>
         <div className="flex items-center justify-center gap-3 pt-3">
-          {/* <Button
-            variant="outline"
-            onClick={() => router.push('/dashboard/tours/import')}
-          >
-            Import Tours
-          </Button> */}
           <Button
             onClick={() => router.push('/dashboard/tours/new')}
           >

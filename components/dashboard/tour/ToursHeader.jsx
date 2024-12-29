@@ -15,12 +15,6 @@ export const ToursHeader = () => {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        {/* <Button
-          variant="outline"
-          onClick={() => router.push('/dashboard/tours/import')}
-        >
-          Import Tours
-        </Button> */}
         <Button
           onClick={() => router.push('/dashboard/tours/new')}
           className="flex items-center"

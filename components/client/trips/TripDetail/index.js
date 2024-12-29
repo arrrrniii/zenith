@@ -5,7 +5,6 @@ import ImageGallery from './ImageGallery';
 import TripHighlights from './TripHighlights';
 import BookingCard from './BookingCard';
 import TripInfo from './TripInfo';
-
 import StatusBadge from './StatusBadge';
 import Header from '@/components/client/Header';
 import Footer from '@/components/client/Footer';

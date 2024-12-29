@@ -1,3 +1,5 @@
+
+//components/dashboard/tour/create/InclusionsExclusions.jsx
 import React from 'react';
 import { Check, X, Plus, AlertCircle, ShieldCheck, Shield, Package, Backpack } from 'lucide-react';
 import FormSection from './FormSection';

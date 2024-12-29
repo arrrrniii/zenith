@@ -1,3 +1,4 @@
+// components/dashboard/tour/create/Accessibility.jsx
 import React from 'react';
 import { AlertCircle, Users, Heart, Info } from 'lucide-react';
 import FormSection from './FormSection';
@@ -5,6 +6,13 @@ import { FormInput, FormSelect } from './FormFields';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+
+const difficultyLevels = [
+  { value: 'beginner', label: 'Beginner - Easy and accessible for most people' },
+  { value: 'intermediate', label: 'Intermediate - Moderate physical activity required' },
+  { value: 'advanced', label: 'Advanced - Challenging, good fitness required' },
+  { value: 'expert', label: 'Expert - Very demanding, experienced participants only' }
+];
 
 const fitnessLevels = [
   { value: 'low', label: 'Low - Light walking, minimal physical activity' },
@@ -35,19 +43,28 @@ const Accessibility = ({ formData = {}, updateFormData = () => {}, errors = {} }
   return (
     <FormSection 
       title="Accessibility and Requirements"
-      description="Specify accessibility features and participant requirements."
+      description="Specify accessibility features, difficulty level, and participant requirements."
     >
       <div className="space-y-6">
-        {/* Age Requirements */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormInput
             label="Minimum Age"
             type="number"
-            value={formData.minimumAge}
-            onChange={(e) => updateFormData('minimumAge', e.target.value)}
+            value={formData.minimumAge || ''}
+            onChange={(e) => updateFormData('minimumAge', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
             error={errors?.minimumAge}
             min={0}
             placeholder="Leave empty if no minimum age"
+          />
+
+          <FormSelect
+            label="Difficulty Level"
+            value={formData.difficultyLevel}
+            onChange={(value) => updateFormData('difficultyLevel', value)}
+            options={difficultyLevels}
+            error={errors?.difficultyLevel}
+            required
+            placeholder="Select difficulty level"
           />
 
           <FormSelect
@@ -56,10 +73,10 @@ const Accessibility = ({ formData = {}, updateFormData = () => {}, errors = {} }
             onChange={(value) => updateFormData('fitnessLevel', value)}
             options={fitnessLevels}
             error={errors?.fitnessLevel}
+            placeholder="Select fitness level"
           />
         </div>
 
-        {/* Accessibility Features */}
         <div className="space-y-4">
           <Label className="text-base">Accessibility Features Available</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,14 +118,13 @@ const Accessibility = ({ formData = {}, updateFormData = () => {}, errors = {} }
           </div>
         </div>
 
-        {/* Accessibility Notes */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-base">Additional Accessibility Notes</Label>
-            {errors?.accessibility?.notes && (
+            {errors?.notes && (
               <span className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
-                {errors.accessibility.notes}
+                {errors.notes}
               </span>
             )}
           </div>
@@ -116,11 +132,10 @@ const Accessibility = ({ formData = {}, updateFormData = () => {}, errors = {} }
             value={formData.notes || ''}
             onChange={(e) => updateFormData('notes', e.target.value)}
             className="w-full min-h-[100px] p-3 rounded-md border border-input bg-background"
-            placeholder="Provide any additional accessibility information or special accommodations available..."
+            placeholder="Provide any additional accessibility information..."
           />
         </div>
 
-        {/* Accessibility Guidelines */}
         <Alert>
           <AlertDescription className="space-y-2">
             <p className="font-medium">Important Guidelines:</p>
@@ -133,14 +148,35 @@ const Accessibility = ({ formData = {}, updateFormData = () => {}, errors = {} }
           </AlertDescription>
         </Alert>
 
-        {formData.fitnessLevel === 'high' || formData.fitnessLevel === 'extreme' ? (
+        {(formData.fitnessLevel === 'high' || formData.fitnessLevel === 'extreme' ||
+          formData.difficultyLevel === 'advanced' || formData.difficultyLevel === 'expert') && (
           <Alert variant="warning">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              High fitness requirements may limit accessibility. Consider offering alternatives or modifications where possible.
+              High difficulty or fitness requirements may limit accessibility. Consider offering alternatives or modifications.
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
+
+        {formData.difficultyLevel && (
+          <Alert>
+            <AlertDescription>
+              <p className="font-medium mb-2">Recommendations for {formData.difficultyLevel} difficulty:</p>
+              {formData.difficultyLevel === 'beginner' && (
+                <p>Ensure clear path marking and frequent rest stops. Provide detailed briefing for first-time participants.</p>
+              )}
+              {formData.difficultyLevel === 'intermediate' && (
+                <p>Consider providing basic training tips before the tour. Include info about terrain and potential challenges.</p>
+              )}
+              {formData.difficultyLevel === 'advanced' && (
+                <p>Specify required experience level and necessary certifications. Include detailed equipment requirements.</p>
+              )}
+              {formData.difficultyLevel === 'expert' && (
+                <p>Outline prerequisite skills and experience. Consider requiring proof of expertise or prior experience.</p>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     </FormSection>
   );

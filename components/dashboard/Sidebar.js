@@ -19,6 +19,7 @@ import {
   ChevronLast,
   LogOut,
   FolderPlus,
+  DollarSign,
   Image
 } from 'lucide-react';
 
@@ -88,6 +89,12 @@ const navigationItems = [
     label: 'Bookings', 
     icon: Calendar,
     path: '/dashboard/bookings'
+  },
+  { 
+    id: 'finance', 
+    label: 'Finance', 
+    icon: DollarSign,
+    path: '/dashboard/finance'
   },
   { 
     id: 'users', 
@@ -166,7 +173,7 @@ const Sidebar = () => {
     <div 
       className={`${
         isCollapsed ? 'w-16' : 'w-64'
-      } bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300`}
+      } bg-white border-r border-gray-200 h-screen sticky top-0 flex flex-col transition-all duration-300`}
     >
       <div className={`p-4 border-b border-gray-200 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed && (

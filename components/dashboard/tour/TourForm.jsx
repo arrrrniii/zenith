@@ -1,6 +1,5 @@
-//components/dashboard/tour/TourForm.jsx
-import React, { useState } from 'react';
-import { useTourMutations } from './hooks/useTourMutations';
+// components/dashboard/tour/TourForm.jsx
+import React, { useState, useEffect } from 'react';
 import BasicInformation from './create/BasicInformation';
 import PricingDetails from './create/PricingDetails';
 import MediaSection from './create/MediaSection';
@@ -11,205 +10,123 @@ import Accessibility from './create/Accessibility';
 import PropTypes from 'prop-types';
 import { Alert } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
+import { defaultFormData, testTourData } from '@/constants/tourData';
 
-const testTourData = {
-  title: "City Walking Tour",
-  description: "Explore the historic downtown area with our expert guides. Perfect for history buffs and casual tourists alike.",
-  tourType: "single_day",
-  duration: "4",
-  durationType: "hours",
-  status: "draft",
-  difficultyLevel: "easy",
-  pricing: {
-    pricePerPerson: "50",
-    maxCapacity: "15",
-    earlyBirdDiscount: "10",
-    groupDiscount: "15",
-    paymentDetails: "Payment required 48 hours before tour",
-    refundPolicy: "Full refund if cancelled 24 hours before",
-    depositRequirements: "20% deposit required"
-  },
-  mainImage: "https://example.com/tour-image.jpg",
-  gallery: ["https://example.com/gallery1.jpg", "https://example.com/gallery2.jpg"],
-  videoUrl: "https://youtube.com/watch?v=abc123",
-  meetingPoint: "Central Station Main Entrance",
-  defaultStartTime: "09:00",
-  tourDates: [
-    {
-      startDate: "2024-12-01",
-      endDate: "2024-12-01",
-      startTime: "09:00",
-      status: "active"
+const TourForm = ({ 
+  initialData = {}, 
+  onSubmit, 
+  onCancel, 
+  isSubmitting = false,
+  errors = {},
+  clearError = () => {},
+}) => {
+  const [formData, setFormData] = useState(transformInitialData());
+  const [originalGallery, setOriginalGallery] = useState(initialData.gallery || []);
+  const [submitError, setSubmitError] = useState(null);
+
+  function transformInitialData() {
+    try {
+      const defaultData = defaultFormData || {
+        pricing: {},
+        accessibility: {},
+        gallery: [],
+        tourDates: [],
+        activities: [],
+        included: [],
+        notIncluded: [],
+        providedEquipment: [],
+        requiredEquipment: []
+      };
+
+      return {
+        ...JSON.parse(JSON.stringify(defaultData)),
+        ...initialData,
+        pricing: {
+          ...defaultData.pricing,
+          ...initialData.pricing
+        },
+        accessibility: {
+          ...defaultData.accessibility,
+          ...initialData.accessibility
+        },
+        gallery: initialData.gallery || [],
+        tourDates: initialData.tourDates || [],
+        activities: initialData.activities || [],
+        included: initialData.included || [],
+        notIncluded: initialData.notIncluded || [],
+        providedEquipment: initialData.providedEquipment || [],
+        requiredEquipment: initialData.requiredEquipment || []
+      };
+    } catch (error) {
+      console.error('Error transforming initial data:', error);
+      return {
+        pricing: {},
+        accessibility: {},
+        gallery: [],
+        tourDates: [],
+        activities: [],
+        included: [],
+        notIncluded: [],
+        providedEquipment: [],
+        requiredEquipment: []
+      };
     }
-  ],
-  activities: [
-    {
-      title: "Historical Walking Tour",
-      duration: 120,
-      description: "Walk through historic district with expert commentary",
-      location: "Downtown",
-      sequence_order: 1
-    },
-    {
-      title: "Local Market Visit",
-      duration: 60,
-      description: "Experience local culture and foods",
-      location: "City Market",
-      sequence_order: 2
-    }
-  ],
-  included: ["Professional guide", "Water bottle", "Snacks"],
-  notIncluded: ["Lunch", "Transportation", "Personal expenses"],
-  providedEquipment: ["Umbrella", "Audio guide", "Map"],
-  requiredEquipment: ["Comfortable shoes", "Camera", "Light jacket"],
-  accessibility: {
-    wheelchairAccessible: true,
-    mobilityAid: true,
-    visualAid: false,
-    hearingAid: true,
-    serviceAnimals: true,
-    minimumAge: "12",
-    fitnessLevel: "low",
-    notes: "Please inform us of any specific requirements in advance"
   }
-};
 
-const defaultFormData = {
-  title: '',
-  description: '',
-  tourType: 'single_day',
-  duration: '',
-  durationType: 'hours',
-  status: 'draft',
-  difficultyLevel: 'easy',
-  pricing: {
-    pricePerPerson: '',
-    maxCapacity: '',
-    earlyBirdDiscount: '',
-    groupDiscount: '',
-    paymentDetails: '',
-    refundPolicy: '',
-    depositRequirements: ''
-  },
-  mainImage: null,
-  gallery: [],
-  videoUrl: '',
-  meetingPoint: '',
-  defaultStartTime: '09:00',
-  tourDates: [],
-  activities: [],
-  included: [],
-  notIncluded: [],
-  providedEquipment: [],
-  requiredEquipment: [],
-  accessibility: {
-    wheelchairAccessible: false,
-    mobilityAid: false,
-    visualAid: false,
-    hearingAid: false,
-    serviceAnimals: false,
-    minimumAge: '',
-    fitnessLevel: 'low',
-    restrictions: [],
-    notes: ''
-  }
-};
-
-const validateForm = (formData) => {
-  const errors = {};
-
-  if (!formData.title?.trim()) errors.title = 'Title is required';
-  if (!formData.description?.trim()) errors.description = 'Description is required';
-  if (!formData.duration) errors.duration = 'Duration is required';
-  if (!formData.pricing?.pricePerPerson) {
-    errors.pricing = errors.pricing || {};
-    errors.pricing.pricePerPerson = 'Price per person is required';
-  }
-  if (!formData.pricing?.maxCapacity) {
-    errors.pricing = errors.pricing || {};
-    errors.pricing.maxCapacity = 'Maximum capacity is required';
-  }
-  if (!formData.meetingPoint?.trim()) errors.meetingPoint = 'Meeting point is required';
-  if (!formData.tourDates?.length) errors.tourDates = 'At least one tour date is required';
-  if (!formData.activities?.length) errors.activities = 'At least one activity is required';
-  if (!formData.included?.length) errors.included = 'At least one inclusion is required';
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors
-  };
-};
-
-const TourForm = ({ initialData = {}, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState(() => ({
-    ...JSON.parse(JSON.stringify(defaultFormData)),
-    ...initialData,
-    pricing: { ...defaultFormData.pricing, ...(initialData.pricing || {}) },
-    accessibility: { ...defaultFormData.accessibility, ...(initialData.accessibility || {}) }
-  }));
-
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { handleCreateTour, handleUpdateTour, loading } = useTourMutations();
-
-  const clearError = (field) => {
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[field];
-      return newErrors;
-    });
-  };
+  useEffect(() => {
+    const newData = transformInitialData();
+    setFormData(newData);
+    setOriginalGallery(initialData.gallery || []);
+  }, [initialData.id]);
 
   const updateFormData = (field, value) => {
     clearError(field);
+    console.log(`Updating field: ${field} with value:`, value);
+
     setFormData(prev => {
       if (field.includes('.')) {
-        const [parentField, childField] = field.split('.');
-        return {
-          ...prev,
-          [parentField]: {
-            ...prev[parentField],
-            [childField]: value
-          }
-        };
+        const pathSegments = field.split('.');
+        const last = pathSegments.pop();
+        let current = { ...prev };
+        let cursor = current;
+        for (const segment of pathSegments) {
+          cursor[segment] = { ...cursor[segment] };
+          cursor = cursor[segment];
+        }
+        cursor[last] = value;
+        return current;
       }
       return { ...prev, [field]: value };
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      const validation = validateForm(formData);
-      setErrors(validation.errors);
+      // Process gallery changes for tracking removals
+      const originalIds = originalGallery
+        .filter(img => img && img.id)
+        .map(img => img.id);
+      
+      const currentIds = (formData.gallery || [])
+        .filter(img => img && typeof img === 'object' && img.id)
+        .map(img => img.id);
+      
+      const removedIds = originalIds.filter(id => !currentIds.includes(id));
 
-      if (!validation.isValid) {
-        console.log('Form validation errors:', validation.errors);
-        return;
-      }
-
-      const result = formData.id
-        ? await handleUpdateTour(formData.id, formData)
-        : await handleCreateTour(formData);
-
-      if (result.success) {
-        onSubmit?.(result.data);
-      } else {
-        setErrors({ submit: result.error?.message || 'Failed to submit form' });
-      }
+      // Pass both form data and removed gallery IDs to parent
+      await onSubmit(formData, removedIds);
     } catch (error) {
       console.error('Form submission error:', error);
-      setErrors({ submit: 'Failed to submit form. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+      setSubmitError(error.message || 'An unexpected error occurred');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6 p-6">
-      <div className="mb-4">
+    <form onSubmit={handleFormSubmit} className="max-w-4xl mx-auto space-y-6 p-6">
+      <div className="mb-4 flex gap-4">
         <button
           type="button"
           onClick={() => setFormData(testTourData)}
@@ -217,59 +134,7 @@ const TourForm = ({ initialData = {}, onSubmit, onCancel }) => {
         >
           Load Test Data
         </button>
-      </div>
-
-      <BasicInformation 
-        formData={formData} 
-        updateFormData={updateFormData}
-        errors={errors}
-      />
-      
-      <PricingDetails 
-        formData={formData.pricing} 
-        updateFormData={(field, value) => updateFormData(`pricing.${field}`, value)}
-        errors={errors?.pricing || {}}
-      />
-      
-      <MediaSection 
-        formData={formData} 
-        updateFormData={updateFormData}
-        errors={errors}
-      />
-      
-      <Schedule 
-        formData={formData}
-        updateFormData={updateFormData}
-        errors={errors}
-      />
-
-      <Activities 
-        formData={formData}
-        updateFormData={updateFormData}
-        errors={errors}
-      />
-      
-      <InclusionsExclusions 
-        formData={formData}
-        updateFormData={updateFormData}
-        errors={errors}
-      />
-      
-      <Accessibility 
-        formData={formData.accessibility}
-        updateFormData={(field, value) => updateFormData(`accessibility.${field}`, value)}
-        errors={errors?.accessibility || {}}
-      />
-
-      {errors.submit && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <p>{errors.submit}</p>
-        </Alert>
-      )}
-
-      <div className="flex justify-end space-x-4">
-        <button 
+        <button
           type="button"
           onClick={onCancel}
           className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
@@ -277,23 +142,96 @@ const TourForm = ({ initialData = {}, onSubmit, onCancel }) => {
         >
           Cancel
         </button>
+      </div>
+
+      {(submitError || errors.submit) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <p>{submitError || errors.submit}</p>
+        </Alert>
+      )}
+
+      <BasicInformation
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      <PricingDetails
+        formData={formData.pricing}
+        updateFormData={(field, value) => updateFormData(`pricing.${field}`, value)}
+        errors={Object.fromEntries(
+          Object.entries(errors)
+            .filter(([k]) => k.startsWith('pricing'))
+            .map(([k,v]) => [k.replace('pricing.', ''), v])
+        )}
+      />
+
+      <MediaSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      <Schedule
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      <Activities
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      <InclusionsExclusions
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      <Accessibility
+        formData={formData.accessibility}
+        updateFormData={(field, value) => updateFormData(`accessibility.${field}`, value)}
+        errors={Object.fromEntries(
+          Object.entries(errors)
+            .filter(([k]) => k.startsWith('accessibility'))
+            .map(([k,v]) => [k.replace('accessibility.', ''), v])
+        )}
+      />
+
+      <div className="flex justify-end space-x-4">
         <button 
           type="submit"
           className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
-            ${(isSubmitting || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={isSubmitting || loading}
+            ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isSubmitting}
         >
-          {(isSubmitting || loading) ? 'Saving...' : 'Save Tour'}
+          {isSubmitting ? 'Saving...' : 'Save Tour'}
         </button>
       </div>
+
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && Object.keys(errors).length > 0 && (
+        <div className="mt-4 p-4 bg-red-50 rounded-md">
+          <h3 className="text-red-800 font-semibold">Validation Errors:</h3>
+          <pre className="mt-2 text-sm text-red-700">
+            {JSON.stringify(errors, null, 2)}
+          </pre>
+        </div>
+      )}
     </form>
   );
 };
 
 TourForm.propTypes = {
   initialData: PropTypes.object,
-  onSubmit: PropTypes.func,
-  onCancel: PropTypes.func
+  onSubmit: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  isSubmitting: PropTypes.bool,
+  errors: PropTypes.object,
+  clearError: PropTypes.func
 };
 
 export default TourForm;

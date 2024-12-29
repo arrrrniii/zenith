@@ -1,3 +1,4 @@
+//components/dashboard/tour/create/Schedule.jsx
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin,  X, AlertCircle, Info } from 'lucide-react';
 import FormSection from './FormSection';

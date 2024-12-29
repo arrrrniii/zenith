@@ -1,3 +1,4 @@
+// components/dashboard/tour/create/FormFields.jsx
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ export const FormInput = ({
   label, 
   error, 
   className, 
-  value = '', // Add default empty string
+  value = '', 
   type = 'text',
   required,
   leftIcon: LeftIcon,
@@ -37,7 +38,7 @@ export const FormInput = ({
       <Input 
         {...props}
         type={type}
-        value={value ?? ''} // Ensure value is never null/undefined
+        value={value ?? ''}
         className={cn(
           LeftIcon && "pl-10",
           error && "border-destructive focus-visible:ring-destructive",
@@ -57,7 +58,7 @@ export const FormTextarea = ({
   label, 
   error, 
   className, 
-  value = '', // Add default empty string
+  value = '', 
   required,
   rows = 3,
   ...props 
@@ -71,7 +72,7 @@ export const FormTextarea = ({
     )}
     <Textarea 
       {...props}
-      value={value ?? ''} // Ensure value is never null/undefined
+      value={value ?? ''}
       className={cn(
         error && "border-destructive focus-visible:ring-destructive",
         className
@@ -89,8 +90,8 @@ export const FormTextarea = ({
 export const FormSelect = ({
   label,
   error,
-  options = [], // Add default empty array
-  value = '', // Add default empty string
+  options = [],
+  value = '',
   onChange,
   placeholder = "Select an option",
   className,
@@ -105,7 +106,7 @@ export const FormSelect = ({
       </Label>
     )}
     <Select
-      value={value ?? ''} // Ensure value is never null/undefined
+      value={value ?? ''}
       onValueChange={onChange}
       {...props}
     >
@@ -128,114 +129,5 @@ export const FormSelect = ({
     {error && (
       <p className="text-sm font-medium text-destructive">{error}</p>
     )}
-  </div>
-);
-
-export const FormNumberInput = ({
-  label,
-  error,
-  leftIcon: LeftIcon,
-  className,
-  value = '', // Add default empty string
-  onChange,
-  required,
-  min,
-  max,
-  step,
-  ...props
-}) => {
-  // Handler for numeric inputs
-  const handleChange = (e) => {
-    const newValue = e.target.value;
-    // Allow empty string or valid numbers within range
-    if (
-      newValue === '' || 
-      (!isNaN(newValue) && 
-        (min === undefined || Number(newValue) >= min) &&
-        (max === undefined || Number(newValue) <= max)
-      )
-    ) {
-      onChange?.(e);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      {label && (
-        <Label htmlFor={props.id || props.name}>
-          {label}
-          {required && <span className="text-destructive ml-1">*</span>}
-        </Label>
-      )}
-      <div className="relative">
-        {LeftIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <LeftIcon className="h-5 w-5 text-muted-foreground" />
-          </div>
-        )}
-        <Input
-          type="number"
-          value={value ?? ''} // Ensure value is never null/undefined
-          onChange={handleChange}
-          min={min}
-          max={max}
-          step={step}
-          {...props}
-          className={cn(
-            LeftIcon && "pl-10",
-            error && "border-destructive focus-visible:ring-destructive",
-            className
-          )}
-          aria-invalid={!!error}
-          required={required}
-        />
-      </div>
-      {error && (
-        <p className="text-sm font-medium text-destructive">{error}</p>
-      )}
-    </div>
-  );
-};
-
-export const FormInlineInput = ({
-  label,
-  error,
-  className,
-  value = '', // Add default empty string
-  required,
-  leftIcon: LeftIcon,
-  ...props
-}) => (
-  <div className="flex items-center gap-4">
-    {label && (
-      <Label
-        htmlFor={props.id || props.name}
-        className="flex-shrink-0 min-w-[120px]"
-      >
-        {label}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </Label>
-    )}
-    <div className="flex-1 relative">
-      {LeftIcon && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <LeftIcon className="h-5 w-5 text-muted-foreground" />
-        </div>
-      )}
-      <Input 
-        {...props}
-        value={value ?? ''} // Ensure value is never null/undefined
-        className={cn(
-          LeftIcon && "pl-10",
-          error && "border-destructive focus-visible:ring-destructive",
-          className
-        )}
-        aria-invalid={!!error}
-        required={required}
-      />
-      {error && (
-        <p className="mt-1 text-sm font-medium text-destructive">{error}</p>
-      )}
-    </div>
   </div>
 );

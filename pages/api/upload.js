@@ -13,29 +13,28 @@ export const config = {
 
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 
-const resizeAndSaveImage = async (file) => {
+// Convert image to WEBP with 100% quality
+const convertToWebP = async (file) => {
   const timestamp = Date.now();
-  const fileName = `${timestamp}-${file.originalFilename}`;
+  const baseName = file.originalFilename.replace(/\.[^.]+$/, '');
+  const fileName = `${timestamp}-${baseName}.webp`;
   const newPath = path.join(uploadDir, fileName);
 
   try {
-    // Read the uploaded file data
     const data = await fs.readFile(file.filepath);
 
-    // Use sharp to resize the image
-    const resizedImageBuffer = await sharp(data)
-      .resize({ width: 1000, withoutEnlargement: true })
+    // Convert directly to webp at 100% quality, no resizing
+    const webpBuffer = await sharp(data)
+      .webp({ quality: 100 })
       .toBuffer();
 
-    // Write the resized image to the upload directory
-    await fs.writeFile(newPath, resizedImageBuffer);
+    await fs.writeFile(newPath, webpBuffer);
 
     return `/uploads/${fileName}`;
   } catch (error) {
-    console.error('Error resizing and saving image:', error);
+    console.error('Error converting image:', error);
     throw error;
   } finally {
-    // Delete the temporary file
     await fs.unlink(file.filepath);
   }
 };
@@ -46,14 +45,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Ensure upload directory exists
     await fs.mkdir(uploadDir, { recursive: true });
 
     const form = formidable({
       uploadDir: uploadDir,
       keepExtensions: true,
-      multiples: true, // Allow multiple file uploads
-      maxFileSize: 100 * 1024 * 1024, // 100MB limit (adjust as needed)
+      multiples: true,
+      maxFileSize: 100 * 1024 * 1024,
     });
 
     form.parse(req, async (err, fields, files) => {
@@ -69,16 +67,16 @@ export default async function handler(req, res) {
 
       try {
         const filePaths = await Promise.all(
-          uploadedFiles.map((file) => resizeAndSaveImage(file))
+          uploadedFiles.map((file) => convertToWebP(file))
         );
-        res.status(200).json({ filePaths });
+        return res.status(200).json({ filePaths });
       } catch (error) {
         console.error('Error saving files:', error);
-        res.status(500).json({ error: 'Error saving files' });
+        return res.status(500).json({ error: 'Error saving files' });
       }
     });
   } catch (error) {
     console.error('Error in upload handler:', error);
-    res.status(500).json({ error: 'Error uploading files' });
+    return res.status(500).json({ error: 'Error uploading files' });
   }
 }

@@ -11,7 +11,6 @@ const TOUR_FIELDS = gql`
     duration
     duration_type
     meeting_point
-    difficulty_level
     status
     main_image_url
     video_url
@@ -75,6 +74,14 @@ const INCLUSION_FIELDS = gql`
     id
     type
     description
+  }
+`;
+
+const GALLERY_FIELDS = gql`
+  fragment GalleryFields on tour_gallery {
+    id
+    image_url
+    sequence_order
   }
 `;
 
@@ -240,8 +247,6 @@ export const GET_TOUR_STATS = gql`
   }
 `;
 
-
-
 export const GET_TOUR_BY_ID = gql`
   query GetTourById($id: uuid!) {
     tours_by_pk(id: $id) {
@@ -252,7 +257,6 @@ export const GET_TOUR_BY_ID = gql`
       duration
       duration_type
       meeting_point
-      difficulty_level
       status
       main_image_url
       video_url
@@ -313,10 +317,16 @@ export const GET_TOUR_BY_ID = gql`
         type
         description
       }
+
+      # Gallery images
+      tour_galleries(order_by: { sequence_order: asc }) {
+        ...GalleryFields
+      }
     }
   }
+  ${GALLERY_FIELDS}
 `;
-// Separate query for similar tours
+
 export const GET_SIMILAR_TOURS = gql`
   query GetSimilarTours($tourType: String!, $currentTourId: uuid!) {
     tours(
@@ -344,9 +354,6 @@ export const GET_SIMILAR_TOURS = gql`
     }
   }
 `;
-
-
-
 
 export const GET_ATTRACTIONS = gql`
   query GetAttractions($limit: Int, $where: attractions_bool_exp) {

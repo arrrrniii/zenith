@@ -1,9 +1,15 @@
-
-// components/tours/TourTableRow.jsx
 import { Eye, Edit, Trash2 } from 'lucide-react';
-import { TourStatusBadge } from './TourStatusBadge';
+import { TourStatusDropdown } from './TourStatusDropdown';
 
-export const TourTableRow = ({ tour, onEdit, onDelete, isSelected, onToggleSelect }) => (
+export const TourTableRow = ({ 
+  tour, 
+  onEdit, 
+  onDelete, 
+  isSelected, 
+  onToggleSelect,
+  onStatusChange  // Add this prop
+ 
+}) => (
   <div className="flex items-center p-4 hover:bg-gray-50">
     <input
       type="checkbox"
@@ -20,28 +26,32 @@ export const TourTableRow = ({ tour, onEdit, onDelete, isSelected, onToggleSelec
             <span>•</span>
             <span>{tour.duration} {tour.duration_type}</span>
             <span>•</span>
-            <span>${tour.tour_pricing?.price_per_person}</span>
+            <span>${tour.tour_pricing?.price_per_person ?? 'N/A'}</span>
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <TourStatusBadge status={tour.status} />
+          <TourStatusDropdown 
+            status={tour.status} 
+            tourId={tour.id}
+            onStatusChange={onStatusChange}
+          />
           <span className="text-sm text-gray-500">
-            {tour.tour_dates_aggregate.aggregate.count} bookings
+            {tour.tour_dates_aggregate?.aggregate?.count ?? 0} bookings
           </span>
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-              onClick={() => window.open(`/tours/${tour.id}`, '_blank')}
+              onClick={() => window.open(`/trip/${tour.id}`, '_blank')}
             >
               <Eye className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={() => onEdit(tour)}
               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
             >
               <Edit className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={() => onDelete([tour.id])}
               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
             >
@@ -53,4 +63,3 @@ export const TourTableRow = ({ tour, onEdit, onDelete, isSelected, onToggleSelec
     </div>
   </div>
 );
-

@@ -1,87 +1,86 @@
-// hooks/useTours.js
 import { useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_TOURS, DELETE_TOUR, UPDATE_TOUR } from '../graphql/queries';
-import { Toast } from '@/components/ui/toast';
+import { GET_TOURS, DELETE_TOUR, UPDATE_TOUR_STATUS } from '../graphql/queries';
+import { useToast } from "@/components/ui/use-toast";
 
 export const useTours = (filters, page, pageSize) => {
-  // Build GraphQL where clause based on filters
+  const { toast } = useToast();
+
   const where = useMemo(() => {
     const conditions = {};
-    
     if (filters.search) {
       conditions._or = [
         { title: { _ilike: `%${filters.search}%` } },
         { description: { _ilike: `%${filters.search}%` } }
       ];
     }
-    
-    if (filters.status) {
+
+    if (filters.status && filters.status !== 'all') {
       conditions.status = { _eq: filters.status };
     }
-    
-    if (filters.type) {
+
+    if (filters.type && filters.type !== 'all') {
       conditions.tour_type = { _eq: filters.type };
     }
-    
+
     return conditions;
   }, [filters]);
 
-  // Query tours with filters and pagination
-  const { data, loading, error } = useQuery(GET_TOURS, {
-    variables: {
-      where,
-      limit: pageSize,
-      offset: (page - 1) * pageSize,
-      order_by: [{ created_at: 'desc' }]
-    },
-    fetchPolicy: 'network-only' // Ensures fresh data on refetch
+  const queryVariables = {
+    where,
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+    order_by: [{ created_at: 'desc' }]
+  };
+
+  const { data, loading, error, refetch } = useQuery(GET_TOURS, {
+    variables: queryVariables,
+    fetchPolicy: 'cache-and-network'
   });
 
-  // Delete tour mutation
-  const [deleteTourMutation, { loading: isDeleting }] = useMutation(DELETE_TOUR, {
-    update(cache, { data: { delete_tours_by_pk } }) {
-      // Update cache after deletion
-      const existingTours = cache.readQuery({
+  const [updateTourStatus] = useMutation(UPDATE_TOUR_STATUS, {
+    optimisticResponse: ({ id, _set }) => ({
+      update_tours_by_pk: {
+        __typename: 'tours',
+        id: id,
+        status: _set.status
+      }
+    }),
+    update(cache, { data: { update_tours_by_pk } }) {
+      const queryToUpdate = {
         query: GET_TOURS,
-        variables: {
-          where,
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-          order_by: [{ created_at: 'desc' }]
-        }
-      });
+        variables: queryVariables
+      };
 
-      if (existingTours) {
+      try {
+        const existingData = cache.readQuery(queryToUpdate);
+        if (!existingData) return;
+
+        const updatedTours = existingData.tours.map(tour => 
+          tour.id === update_tours_by_pk.id 
+            ? { ...tour, status: update_tours_by_pk.status }
+            : tour
+        );
+
         cache.writeQuery({
-          query: GET_TOURS,
-          variables: {
-            where,
-            limit: pageSize,
-            offset: (page - 1) * pageSize,
-            order_by: [{ created_at: 'desc' }]
-          },
+          ...queryToUpdate,
           data: {
-            tours: existingTours.tours.filter(
-              tour => tour.id !== delete_tours_by_pk.id
-            ),
-            tours_aggregate: {
-              aggregate: {
-                count: existingTours.tours_aggregate.aggregate.count - 1
-              }
-            }
+            ...existingData,
+            tours: updatedTours
           }
         });
+      } catch (error) {
+        console.error('Error updating cache:', error);
       }
     },
     onCompleted: () => {
-      Toast({
+      toast({
         title: "Success",
-        description: "Tour deleted successfully",
+        description: "Tour status updated successfully",
       });
     },
     onError: (error) => {
-      Toast({
+      toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
@@ -89,16 +88,57 @@ export const useTours = (filters, page, pageSize) => {
     }
   });
 
-  // Update tour mutation
-  const [updateTourMutation, { loading: isUpdating }] = useMutation(UPDATE_TOUR, {
+  const [deleteTourMutation, { loading: isDeleting }] = useMutation(DELETE_TOUR, {
+    update(cache, { data: { delete_tours_by_pk } }) {
+      try {
+        const existingData = cache.readQuery({
+          query: GET_TOURS,
+          variables: queryVariables
+        });
+
+        if (!existingData) return;
+
+        const updatedTours = existingData.tours.filter(
+          tour => tour.id !== delete_tours_by_pk.id
+        );
+
+        const updatedCount = existingData.tours_aggregate.aggregate.count - 1;
+
+        cache.writeQuery({
+          query: GET_TOURS,
+          variables: queryVariables,
+          data: {
+            tours: updatedTours,
+            tours_aggregate: {
+              __typename: 'tours_aggregate',
+              aggregate: {
+                __typename: 'tours_aggregate_fields',
+                count: updatedCount
+              }
+            }
+          }
+        });
+
+        cache.evict({ id: cache.identify({ __typename: 'tours', id: delete_tours_by_pk.id }) });
+        cache.gc();
+
+      } catch (error) {
+        console.error('Error updating cache:', error);
+      }
+    },
     onCompleted: () => {
-      Toast({
+      toast({
         title: "Success",
-        description: "Tour updated successfully",
+        description: "Tour deleted successfully",
       });
+
+      const currentPageItemCount = data?.tours?.length || 0;
+      if (currentPageItemCount === 1 && page > 1) {
+        setPage(page - 1);
+      }
     },
     onError: (error) => {
-      Toast({
+      toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
@@ -108,53 +148,52 @@ export const useTours = (filters, page, pageSize) => {
 
   const handleDelete = async (ids) => {
     try {
-      await Promise.all(
+      const results = await Promise.all(
         ids.map(id => 
           deleteTourMutation({ 
             variables: { id },
             optimisticResponse: {
-              delete_tours_by_pk: { id, __typename: 'tours' }
+              delete_tours_by_pk: { 
+                id, 
+                __typename: 'tours'
+              }
             }
           })
         )
       );
-      return true;
+
+      return results.every(result => result.data?.delete_tours_by_pk);
     } catch (error) {
       console.error('Error deleting tours:', error);
       return false;
     }
   };
 
-  const handleUpdate = async (id, tourData) => {
+  const handleStatusUpdate = async (tourId, newStatus) => {
     try {
-      await updateTourMutation({
+      await updateTourStatus({
         variables: {
-          id,
-          object: tourData
-        },
-        optimisticResponse: {
-          update_tours_by_pk: {
-            ...tourData,
-            id,
-            __typename: 'tours'
+          id: tourId,
+          _set: {
+            status: newStatus
           }
         }
       });
       return true;
     } catch (error) {
-      console.error('Error updating tour:', error);
+      console.error('Failed to update tour status:', error);
       return false;
     }
   };
 
   return {
     tours: data?.tours || [],
-    totalCount: data?.tours_aggregate.aggregate.count || 0,
+    totalCount: data?.tours_aggregate?.aggregate?.count || 0,
     loading,
     error,
     isDeleting,
-    isUpdating,
     handleDelete,
-    handleUpdate
+    handleStatusUpdate,
+    refetch
   };
 };

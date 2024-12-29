@@ -21,6 +21,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/dashboard/tour/TourForm.jsx", "components/dashboard/tour/graphql/mutations.js", "components/dashboard/tour/hooks/useTourMutations.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/dashboard/tour/TourForm.jsx", "components/dashboard/tour/graphql/mutations.js", "components/dashboard/tour/hooks/useTourMutations.js", "lib/time.ts", "components/dashboard/tour/hooks/useFormValidation.js"],
   "exclude": ["node_modules"]
 }
