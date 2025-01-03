@@ -1,6 +1,7 @@
+// graphql/bookings.js
 import { gql } from '@apollo/client';
 
-// Fragments
+// Base Booking Fields
 export const BOOKING_FIELDS = gql`
   fragment BookingFields on bookings {
     id
@@ -16,6 +17,7 @@ export const BOOKING_FIELDS = gql`
     booking_status
     payment_status
     created_at
+    updated_at
     tour {
       id 
       title
@@ -27,7 +29,44 @@ export const BOOKING_FIELDS = gql`
   }
 `;
 
-// Mutation to create a booking
+// Payment Fields
+export const PAYMENT_FIELDS = gql`
+  fragment PaymentFields on booking_payments {
+    id
+    booking_id
+    amount
+    payment_method
+    transaction_id
+    payment_status
+    payment_date
+    masked_card_number
+    authorization_code
+    card_issuer
+    card_brand
+    client_ip
+    currency
+    host_reference
+    response_code
+    response_message
+    created_at
+  }
+`;
+
+// Get Booking by Reference
+export const GET_BOOKING = gql`
+  query GetBooking($reference: String!) {
+    bookings(where: { booking_reference: { _eq: $reference } }) {
+      ...BookingFields
+      booking_payments {
+        ...PaymentFields
+      }
+    }
+  }
+  ${BOOKING_FIELDS}
+  ${PAYMENT_FIELDS}
+`;
+
+// Create New Booking
 export const CREATE_BOOKING = gql`
   mutation CreateBooking($booking: bookings_insert_input!) {
     insert_bookings_one(object: $booking) {
@@ -37,7 +76,7 @@ export const CREATE_BOOKING = gql`
   ${BOOKING_FIELDS}
 `;
 
-// Mutation to add booking add-ons
+// Add Booking Add-ons
 export const ADD_BOOKING_ADDONS = gql`
   mutation AddBookingAddons($objects: [booking_add_ons_insert_input!]!) {
     insert_booking_add_ons(objects: $objects) {
@@ -47,89 +86,87 @@ export const ADD_BOOKING_ADDONS = gql`
         add_on_id
         quantity
         price
-        add_on {
-          name
-        }
       }
     }
   }
 `;
 
-// Query to get booking by reference
-export const GET_BOOKING = gql`
-  query GetBooking($reference: String!) {
+// Get Booking Status with Payment Details
+export const GET_BOOKING_STATUS = gql`
+  query GetBookingStatus($reference: String!) {
     bookings(where: { booking_reference: { _eq: $reference } }) {
       ...BookingFields
-      booking_add_ons {
-        id
-        add_on_id
-        quantity
-        price
-        add_on {
-          name
-          description
-        }
+      booking_payments(order_by: { created_at: desc }, limit: 1) {
+        ...PaymentFields
       }
     }
   }
   ${BOOKING_FIELDS}
+  ${PAYMENT_FIELDS}
 `;
 
-// Query to get booking status with payment details
-export const GET_BOOKING_STATUS = gql`
-  ${BOOKING_FIELDS}
-  query GetBookingStatus($id: uuid!) {
-    bookings_by_pk(id: $id) {
-      ...BookingFields
-      booking_payments {
-        id
-        amount
-        payment_method
-        transaction_id
-        payment_status
-        payment_date
-      }
+// Create Payment Record
+export const CREATE_PAYMENT_RECORD = gql`
+  mutation CreatePaymentRecord($payment: booking_payments_insert_input!) {
+    insert_booking_payments_one(object: $payment) {
+      ...PaymentFields
     }
   }
+  ${PAYMENT_FIELDS}
 `;
 
-// Updated mutation to handle booking and payment updates
-export const UPDATE_BOOKING_PAYMENT = gql`
-  mutation UpdateBookingPayment(
-    $booking_id: uuid!,
-    $payment_data: booking_payments_insert_input!,
-    $booking_status: booking_status!,
-    $payment_status: payment_status!
+// Update Booking Status
+export const UPDATE_BOOKING_STATUS = gql`
+  mutation UpdateBookingStatus(
+    $booking_reference: String!,
+    $payment_status: payment_status_enum!,
+    $booking_status: booking_status_enum!
   ) {
-    # Insert payment record
-    insert_booking_payments_one(object: $payment_data) {
-      id
-      booking_id
-      amount
-      payment_method
-      transaction_id
-      payment_status
-      payment_date
-    }
-    # Update booking statuses
-    update_bookings_by_pk(
-      pk_columns: { id: $booking_id },
-      _set: { 
+    update_bookings(
+      where: { booking_reference: { _eq: $booking_reference }},
+      _set: {
         payment_status: $payment_status,
         booking_status: $booking_status,
         updated_at: "now()"
       }
     ) {
-      ...BookingFields
-      booking_payments {
-        id
-        amount
-        payment_method
-        transaction_id
-        payment_status
-        payment_date
+      returning {
+        ...BookingFields
       }
     }
   }
   ${BOOKING_FIELDS}
+`;
+
+// Process Payment Webhook
+export const PROCESS_PAYMENT_WEBHOOK = gql`
+  mutation ProcessPaymentWebhook(
+    $booking_reference: String!,
+    $payment_data: booking_payments_insert_input!,
+    $booking_status: booking_status_enum!,
+    $payment_status: payment_status_enum!
+  ) {
+    # Create payment record
+    insert_booking_payments_one(object: $payment_data) {
+      ...PaymentFields
+    }
+    # Update booking status
+    update_bookings(
+      where: { booking_reference: { _eq: $booking_reference }},
+      _set: {
+        payment_status: $payment_status,
+        booking_status: $booking_status,
+        updated_at: "now()"
+      }
+    ) {
+      returning {
+        ...BookingFields
+        booking_payments(order_by: { created_at: desc }, limit: 1) {
+          ...PaymentFields
+        }
+      }
+    }
+  }
+  ${BOOKING_FIELDS}
+  ${PAYMENT_FIELDS}
 `;

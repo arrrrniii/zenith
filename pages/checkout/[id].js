@@ -34,32 +34,22 @@ const ErrorState = ({ message, onBack }) => (
 );
 
 // Helper to format DB date to "YYYY-MM-DD" in local time
-const formatToLocalYYYYMMDD = (dateObj) => dateObj.toLocaleDateString('en-CA');
+const formatToLocalYYYYMMDD = (dateObj) => {
+  if (!dateObj) return null;
+  return new Date(dateObj).toLocaleDateString('en-CA'); // Uses YYYY-MM-DD format
+};
 
 const transformTourData = (tour, selectedDate, quantity) => {
   if (!tour) return null;
 
   const parsedQuantity = parseInt(quantity) || 1;
 
-  // Debug logs
-  console.log("Selected date param =>", selectedDate);
-  console.log("All DB dates =>", tour?.tour_dates?.map(d => d.date));
-
-  // Attempt to find a matching date
+  // Find matching date info
   const selectedDateInfo = tour?.tour_dates?.find((tourDate) => {
     const dbDate = new Date(tourDate.date);
     const localFormatted = formatToLocalYYYYMMDD(dbDate);
-
-    console.log("[DEBUG] Comparing:", {
-      rawDBDate: tourDate.date,
-      localFormatted,
-      selectedDate,
-    });
-
     return localFormatted === selectedDate;
   });
-
-  console.log("selectedDateInfo =>", selectedDateInfo);
 
   // Process inclusions
   const includedItems = tour.tour_inclusions
@@ -102,7 +92,8 @@ const transformTourData = (tour, selectedDate, quantity) => {
     cancellationPolicy: tour.tour_pricing?.refund_policy || '',
     maxCapacity: tour.tour_pricing?.max_capacity || 10,
     tourType: tour.tour_type || 'Standard Tour',
-    status: tour.status || 'published'
+    status: tour.status || 'published',
+    dateInfo: selectedDateInfo // Pass the full date info
   };
 };
 
@@ -141,33 +132,48 @@ export default function CheckoutPageWrapper() {
   const router = useRouter();
   const { id, date, quantity } = router.query;
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [bookingError, setBookingError] = useState(null);
 
-  // NOTE: If removing `where: { date: { _gte: "now()" } }` helps,
-  // that means your date is not recognized as future by Hasura. 
-  // Use the version below to see ALL tour_dates for debugging:
   const { data, loading: isLoading, error: tourError } = useQuery(GET_TOUR_BY_ID, {
     variables: { id },
     skip: !id,
-    // fetchPolicy: 'no-cache' // (optional) to ensure fresh data
   });
 
   // Initialize booking hook
   const {
     handleBooking,
     calculateTotal,
-    error: bookingError,
+    error: bookingHookError,
     isProcessing
-  } = useBookTour(data?.tours_by_pk, date);
+  } = useBookTour(data?.tours_by_pk);
 
   const processBooking = async (formData) => {
     try {
       setIsRedirecting(true);
-      await handleBooking({
+      setBookingError(null);
+
+      const totalAmount = calculateTotal({
         ...formData,
         participants: parseInt(quantity)
       });
+
+      const bookingResult = await handleBooking({
+        ...formData,
+        tourId: id,
+        participants: parseInt(quantity),
+        selectedDate: date,
+        totalAmount
+      });
+
+      if (bookingResult?.bookingReference) {
+        // Successful booking - redirect to payment
+        router.push(`/payment/${bookingResult.bookingReference}`);
+      } else {
+        throw new Error('Failed to create booking - no reference returned');
+      }
     } catch (error) {
       console.error('Checkout error:', error);
+      setBookingError(error.message || 'Failed to process booking');
       setIsRedirecting(false);
     }
   };
@@ -193,10 +199,12 @@ export default function CheckoutPageWrapper() {
     }
   };
 
+  // Handle loading state
   if (isLoading || isRedirecting) {
     return <LoadingSpinner />;
   }
 
+  // Handle missing required parameters
   if (!id || !date || !quantity) {
     return (
       <ErrorState 
@@ -206,16 +214,19 @@ export default function CheckoutPageWrapper() {
     );
   }
 
-  if (tourError || bookingError) {
-    console.error('Error:', tourError || bookingError);
+  // Handle errors from tour query or booking process
+  const error = tourError || bookingError || bookingHookError;
+  if (error) {
+    console.error('Error:', error);
     return (
       <ErrorState 
-        message={(tourError || bookingError)?.message} 
+        message={error.message} 
         onBack={handleBack}
       />
     );
   }
 
+  // Handle missing tour data
   if (!data?.tours_by_pk) {
     return (
       <ErrorState 
@@ -227,6 +238,7 @@ export default function CheckoutPageWrapper() {
 
   const tour = data.tours_by_pk;
 
+  // Handle unpublished tours
   if (tour.status !== 'published') {
     return (
       <ErrorState 
@@ -238,7 +250,7 @@ export default function CheckoutPageWrapper() {
 
   const transformedData = transformTourData(tour, date, quantity);
 
-  // If the date was found but availableSpots is < needed participants
+  // Handle insufficient availability
   if (transformedData.availableSpots < parseInt(quantity)) {
     return (
       <ErrorState 

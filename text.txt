@@ -33,3 +33,83 @@ volumes:
 
 networks:
   hasura-network:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+version: '3.6'
+
+services:
+  postgres:
+    container_name: zenith_postgres_8085
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - zenith_postgres_data_8085:/var/lib/postgresql/data
+    networks:
+      - zenith_network_8085
+
+  hasura:
+    container_name: zenith_hasura_8085
+    image: hasura/graphql-engine:v2.30.1
+    depends_on:
+      - postgres
+    restart: always
+    ports:
+      - "8085:8080"
+    environment:
+      # 1) Database connection
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+      # 2) Admin secret (DO NOT expose publicly!)
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET}
+
+      # 3) Enable public (unauthenticated) role:
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: 'public'
+
+      # 4) JWT config to validate tokens from Clerk:
+      #    Replace YOUR-CLERK-DOMAIN with your actual Clerk domain
+      HASURA_GRAPHQL_JWT_SECRET: >-
+        {
+          "jwk_url": "https://tops-mako-59.clerk.accounts.dev/.well-known/jwks.json",
+          "issuer": "https://tops-mako-59.clerk.accounts.dev",
+          "claims_namespace": "https://hasura.io/jwt/claims"
+        }
+
+      # 5) CORS settings for local dev or your real domains
+      HASURA_GRAPHQL_CORS_DOMAIN: "http://localhost:3000,https://www.zenith.travel,https://zenith.travel,https://destination.zenith.travel,https://www.destination.zenith.travel,https://zenith-dev.creativesphere.co,https://zenith.creativesphere.co"
+      HASURA_GRAPHQL_ENABLE_CORS: "true"
+
+      # 6) Enable console if you want Hasura console available in dev
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+    networks:
+      - zenith_network_8085
+
+volumes:
+  zenith_postgres_data_8085:
+    name: zenith_postgres_data_8085
+
+networks:
+  zenith_network_8085:
+    name: zenith_network_8085

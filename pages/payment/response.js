@@ -1,169 +1,164 @@
-// FILE: /pages/payment/response.js
+/* eslint-disable @next/next/no-html-link-for-pages */
+// pages/payment/response.js
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useMutation } from '@apollo/client';
+import { UPDATE_BOOKING_PAYMENT } from '@/graphql/bookings';
+import { Loader2 } from "lucide-react";
+import Head from 'next/head';
 
-import React from 'react';
-import crypto from 'crypto';
+const LoadingState = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+    <span className="ml-2">Verifying payment...</span>
+  </div>
+);
 
-/**
- * Escapes '\' => '\\' and '|' => '\|'
- */
-function escapeNestPay(value) {
-  if (typeof value !== 'string') return value;
-  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
-}
-
-/**
- * Recompute Hash (Version 3) for the response:
- *   1) Sort keys,
- *   2) Escape values, join with '|',
- *   3) Append storeKey,
- *   4) SHA-512 => base64
- */
-function generateNestPayHashV3(params, storeKey) {
-  const sortedKeys = Object.keys(params).sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: 'base' })
-  );
-
-  let plaintext = '';
-  for (const key of sortedKeys) {
-    const lowerKey = key.toLowerCase();
-    // Skip "hash", "encoding", "countdown" from doc
-    if (lowerKey === 'hash' || lowerKey === 'encoding' || lowerKey === 'countdown') {
-      continue;
-    }
-    const val = params[key] ?? '';
-    const escapedVal = escapeNestPay(val);
-    plaintext += escapedVal + '|';
-  }
-  plaintext += escapeNestPay(storeKey);
-
-  // DEBUG: Show the final plaintext before hashing
-  console.log('[NestPay Debug] [RESPONSE] Plaintext BEFORE hashing:\n', plaintext);
-
-  const hashBuffer = crypto.createHash('sha512').update(plaintext, 'utf-8').digest();
-  const base64Hash = hashBuffer.toString('base64');
-
-  // DEBUG: Show the computed base64 hash
-  console.log('[NestPay Debug] [RESPONSE] Computed Base64 Hash:\n', base64Hash);
-
-  return base64Hash;
-}
-
-export default function PaymentResponsePage({ isSuccess, isDeclined, message, postedFields }) {
-  return (
-    <div style={{ margin: 40 }}>
-      <h1>Payment Response</h1>
-
-      {isDeclined ? (
-        <h2 style={{ color: 'red' }}>Payment Declined</h2>
-      ) : isSuccess ? (
-        <h2 style={{ color: 'green' }}>Payment Verified Successfully!</h2>
-      ) : (
-        <h2 style={{ color: 'red' }}>Security Alert: Hash Mismatch!</h2>
-      )}
-
-      <p>{message}</p>
-
-      <h3>Posted Fields</h3>
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>Param</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {postedFields.map(([k, v]) => (
-            <tr key={k}>
-              <td>{k}</td>
-              <td>{v}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+const SuccessState = ({ bookingRef }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="max-w-md w-full mx-auto px-4">
+      <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Payment Successful!
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Your booking has been confirmed. Booking reference: {bookingRef}
+        </p>
+        <div className="space-y-3">
+          <a
+            href={`/bookings/${bookingRef}`}
+            className="block w-full px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            View Booking Details
+          </a>
+          <a
+            href="/"
+            className="block w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+          >
+            Return to Homepage
+          </a>
+        </div>
+      </div>
     </div>
-  );
-}
+  </div>
+);
 
-export async function getServerSideProps({ req }) {
-  // 1) Must be a POST
-  if (req.method !== 'POST') {
-    return {
-      props: {
-        isSuccess: false,
-        isDeclined: false,
-        message: 'No POST data received. Possibly a direct GET.',
-        postedFields: [],
-      },
+const ErrorState = ({ message, bookingRef }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="max-w-md w-full mx-auto px-4">
+      <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Payment Failed
+        </h1>
+        <p className="text-gray-600 mb-6">
+          {message || "We couldn't process your payment. Please try again."}
+          {bookingRef && <><br />Booking reference: {bookingRef}</>}
+        </p>
+        <div className="space-y-3">
+          {bookingRef && (
+            <a
+              href={`/payment/${bookingRef}`}
+              className="block w-full px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+            >
+              Try Payment Again
+            </a>
+          )}
+          <a
+            href="/"
+            className="block w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+          >
+            Return to Homepage
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+export default function PaymentResponsePage() {
+  const router = useRouter();
+  const [updateBookingPayment] = useMutation(UPDATE_BOOKING_PAYMENT);
+  const [status, setStatus] = useState('loading');
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const processPaymentResponse = async () => {
+      try {
+        const {
+          TransId,
+          Response,
+          mdStatus,
+          oid: bookingRef,
+          amount,
+          ...otherParams
+        } = router.query;
+
+        // Validate required parameters
+        if (!TransId || !Response || !mdStatus || !bookingRef) {
+          throw new Error('Invalid payment response parameters');
+        }
+
+        // Check 3D authentication status
+        if (mdStatus !== '1') {
+          throw new Error('3D authentication failed');
+        }
+
+        // Check payment response
+        if (Response !== 'Approved') {
+          throw new Error('Payment was not approved');
+        }
+
+        // Update booking status in database
+        await updateBookingPayment({
+          variables: {
+            booking_id: bookingRef,
+            payment_data: {
+              amount: parseFloat(amount),
+              payment_method: 'credit_card',
+              transaction_id: TransId,
+              payment_status: 'completed',
+              payment_date: new Date().toISOString(),
+              payment_details: JSON.stringify(otherParams)
+            },
+            booking_status: 'confirmed',
+            payment_status: 'completed'
+          }
+        });
+
+        setStatus('success');
+      } catch (err) {
+        console.error('Payment processing error:', err);
+        setError(err.message);
+        setStatus('error');
+      }
     };
-  }
 
-  // 2) Read raw body
-  const rawBody = await new Promise((resolve) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => resolve(body));
-  });
+    if (router.isReady && Object.keys(router.query).length > 0) {
+      processPaymentResponse();
+    }
+  }, [router.isReady, router.query, updateBookingPayment]);
 
-  // DEBUG: Show raw body
-  console.log('[NestPay Debug] [RESPONSE] rawBody =>', rawBody);
+  const bookingRef = router.query.oid;
 
-  // 3) Parse POST data
-  const postData = {};
-  rawBody.split('&').forEach((pair) => {
-    const [k, v] = pair.split('=');
-    postData[decodeURIComponent(k)] = decodeURIComponent(v || '');
-  });
+  return (
+    <>
+      <Head>
+        <title>Payment {status === 'success' ? 'Successful' : 'Status'}</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
 
-  // DEBUG: Show the entire postData
-  console.log('[NestPay Debug] [RESPONSE] postData =>', postData);
-
-  const postedFields = Object.entries(postData);
-
-  // 4) Check ProcReturnCode
-  const procReturnCode = postData['ProcReturnCode'] || '';
-  const errMsg = postData['ErrMsg'] || '';
-
-  console.log('[NestPay Debug] [RESPONSE] ProcReturnCode:', procReturnCode);
-  console.log('[NestPay Debug] [RESPONSE] ErrMsg:', errMsg);
-
-  // If not "00", then it's declined or error
-  if (procReturnCode !== '00') {
-    return {
-      props: {
-        isSuccess: false,
-        isDeclined: true,
-        message: `Transaction Declined. Code: ${procReturnCode}, ErrMsg: ${errMsg}`,
-        postedFields,
-      },
-    };
-  }
-
-  // 5) If success => check hash
-  const storeKey = 'SKEY4550'; // same as in [bookingRef].js
-  const localHash = generateNestPayHashV3(postData, storeKey);
-  // The bank might return "HASH" or "hash"
-  const bankHash = postData['hash'] || postData['HASH'] || '';
-
-  // Compare
-  if (localHash === bankHash) {
-    // Payment verified
-    return {
-      props: {
-        isSuccess: true,
-        isDeclined: false,
-        message: 'Hash is successful. Payment verified.',
-        postedFields,
-      },
-    };
-  } else {
-    // Mismatch => potential tampering
-    return {
-      props: {
-        isSuccess: false,
-        isDeclined: false,
-        message: 'Security Alert: The digital signature is not valid.',
-        postedFields,
-      },
-    };
-  }
-}
+      {status === 'loading' && <LoadingState />}
+      {status === 'success' && <SuccessState bookingRef={bookingRef} />}
+      {status === 'error' && <ErrorState message={error} bookingRef={bookingRef} />}
+    </>
+  )}
